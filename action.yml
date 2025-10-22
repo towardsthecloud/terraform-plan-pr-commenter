@@ -1,0 +1,30 @@
+name: Terraform Plan PR Commenter
+description: Post the output of `terraform plan` to a Pull Request comment.
+author: Towards the Cloud
+branding:
+  icon: git-pull-request
+  color: orange
+inputs:
+  planfile:
+    description: Path to the Terraform plan file to post as comment in the Pull Request.
+    required: true
+  token:
+    description: The GitHub or PAT token to use for posting comments to Pull Requests.
+    default: ${{ github.token }}
+  header:
+    description: The header to use for the Pull Request comment.
+    default: 📝 Terraform Plan
+  terraform-cmd:
+    description: The command to execute for calling the Terraform binary.
+    default: terraform
+  working-directory:
+    description: The directory where the Terraform binary should be called.
+    default: "."
+outputs:
+  markdown:
+    description: The raw markdown output of the `terraform plan` command
+  empty:
+    description: Whether the `terraform plan` command contains any change or not
+runs:
+  using: node20
+  main: src/index.js
