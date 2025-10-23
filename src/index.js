@@ -411,7 +411,7 @@ var require_tunnel = __commonJS({
         connectOptions.headers = connectOptions.headers || {};
         connectOptions.headers["Proxy-Authorization"] = "Basic " + new Buffer(connectOptions.proxyAuth).toString("base64");
       }
-      debug("making CONNECT request");
+      debug2("making CONNECT request");
       var connectReq = self.request(connectOptions);
       connectReq.useChunkedEncodingByDefault = false;
       connectReq.once("response", onResponse);
@@ -431,40 +431,40 @@ var require_tunnel = __commonJS({
         connectReq.removeAllListeners();
         socket.removeAllListeners();
         if (res.statusCode !== 200) {
-          debug(
+          debug2(
             "tunneling socket could not be established, statusCode=%d",
             res.statusCode
           );
           socket.destroy();
-          var error46 = new Error("tunneling socket could not be established, statusCode=" + res.statusCode);
-          error46.code = "ECONNRESET";
-          options.request.emit("error", error46);
+          var error47 = new Error("tunneling socket could not be established, statusCode=" + res.statusCode);
+          error47.code = "ECONNRESET";
+          options.request.emit("error", error47);
           self.removeSocket(placeholder);
           return;
         }
         if (head.length > 0) {
-          debug("got illegal response body from proxy");
+          debug2("got illegal response body from proxy");
           socket.destroy();
-          var error46 = new Error("got illegal response body from proxy");
-          error46.code = "ECONNRESET";
-          options.request.emit("error", error46);
+          var error47 = new Error("got illegal response body from proxy");
+          error47.code = "ECONNRESET";
+          options.request.emit("error", error47);
           self.removeSocket(placeholder);
           return;
         }
-        debug("tunneling connection has established");
+        debug2("tunneling connection has established");
         self.sockets[self.sockets.indexOf(placeholder)] = socket;
         return cb(socket);
       }
       function onError(cause) {
         connectReq.removeAllListeners();
-        debug(
+        debug2(
           "tunneling socket could not be established, cause=%s\n",
           cause.message,
           cause.stack
         );
-        var error46 = new Error("tunneling socket could not be established, cause=" + cause.message);
-        error46.code = "ECONNRESET";
-        options.request.emit("error", error46);
+        var error47 = new Error("tunneling socket could not be established, cause=" + cause.message);
+        error47.code = "ECONNRESET";
+        options.request.emit("error", error47);
         self.removeSocket(placeholder);
       }
     };
@@ -519,9 +519,9 @@ var require_tunnel = __commonJS({
       }
       return target;
     }
-    var debug;
+    var debug2;
     if (process.env.NODE_DEBUG && /\btunnel\b/.test(process.env.NODE_DEBUG)) {
-      debug = function() {
+      debug2 = function() {
         var args = Array.prototype.slice.call(arguments);
         if (typeof args[0] === "string") {
           args[0] = "TUNNEL: " + args[0];
@@ -531,10 +531,10 @@ var require_tunnel = __commonJS({
         console.error.apply(console, args);
       };
     } else {
-      debug = function() {
+      debug2 = function() {
       };
     }
-    exports2.debug = debug;
+    exports2.debug = debug2;
   }
 });
 
@@ -5595,7 +5595,7 @@ Content-Type: ${value.type || "application/octet-stream"}\r
         throw new TypeError("Body is unusable");
       }
       const promise2 = createDeferredPromise();
-      const errorSteps = (error46) => promise2.reject(error46);
+      const errorSteps = (error47) => promise2.reject(error47);
       const successSteps = (data) => {
         try {
           promise2.resolve(convertBytesToJSValue(data));
@@ -5881,16 +5881,16 @@ var require_request = __commonJS({
           this.onError(err);
         }
       }
-      onError(error46) {
+      onError(error47) {
         this.onFinally();
         if (channels.error.hasSubscribers) {
-          channels.error.publish({ request: this, error: error46 });
+          channels.error.publish({ request: this, error: error47 });
         }
         if (this.aborted) {
           return;
         }
         this.aborted = true;
-        return this[kHandler].onError(error46);
+        return this[kHandler].onError(error47);
       }
       onFinally() {
         if (this.errorHandler) {
@@ -6753,8 +6753,8 @@ var require_RedirectHandler = __commonJS({
       onUpgrade(statusCode, headers, socket) {
         this.handler.onUpgrade(statusCode, headers, socket);
       }
-      onError(error46) {
-        this.handler.onError(error46);
+      onError(error47) {
+        this.handler.onError(error47);
       }
       onHeaders(statusCode, headers, resume, statusText) {
         this.location = this.history.length >= this.maxRedirections || util.isDisturbed(this.opts.body) ? null : parseLocation(statusCode, headers);
@@ -8898,7 +8898,7 @@ var require_pool = __commonJS({
         this[kOptions] = { ...util.deepClone(options), connect, allowH2 };
         this[kOptions].interceptors = options.interceptors ? { ...options.interceptors } : void 0;
         this[kFactory] = factory;
-        this.on("connectionError", (origin2, targets, error46) => {
+        this.on("connectionError", (origin2, targets, error47) => {
           for (const target of targets) {
             const idx = this[kClients].indexOf(target);
             if (idx !== -1) {
@@ -10509,13 +10509,13 @@ var require_mock_utils = __commonJS({
       if (mockDispatch2.data.callback) {
         mockDispatch2.data = { ...mockDispatch2.data, ...mockDispatch2.data.callback(opts) };
       }
-      const { data: { statusCode, data, headers, trailers, error: error46 }, delay, persist } = mockDispatch2;
+      const { data: { statusCode, data, headers, trailers, error: error47 }, delay, persist } = mockDispatch2;
       const { timesInvoked, times } = mockDispatch2;
       mockDispatch2.consumed = !persist && timesInvoked >= times;
       mockDispatch2.pending = timesInvoked < times;
-      if (error46 !== null) {
+      if (error47 !== null) {
         deleteMockDispatch(this[kDispatches], key);
-        handler2.onError(error46);
+        handler2.onError(error47);
         return true;
       }
       if (typeof delay === "number" && delay > 0) {
@@ -10553,19 +10553,19 @@ var require_mock_utils = __commonJS({
         if (agent.isMockActive) {
           try {
             mockDispatch.call(this, opts, handler2);
-          } catch (error46) {
-            if (error46 instanceof MockNotMatchedError) {
+          } catch (error47) {
+            if (error47 instanceof MockNotMatchedError) {
               const netConnect = agent[kGetNetConnect]();
               if (netConnect === false) {
-                throw new MockNotMatchedError(`${error46.message}: subsequent request to origin ${origin} was not allowed (net.connect disabled)`);
+                throw new MockNotMatchedError(`${error47.message}: subsequent request to origin ${origin} was not allowed (net.connect disabled)`);
               }
               if (checkNetConnect(netConnect, origin)) {
                 originalDispatch.call(this, opts, handler2);
               } else {
-                throw new MockNotMatchedError(`${error46.message}: subsequent request to origin ${origin} was not allowed (net.connect is not enabled for this origin)`);
+                throw new MockNotMatchedError(`${error47.message}: subsequent request to origin ${origin} was not allowed (net.connect is not enabled for this origin)`);
               }
             } else {
-              throw error46;
+              throw error47;
             }
           }
         } else {
@@ -10728,11 +10728,11 @@ var require_mock_interceptor = __commonJS({
       /**
        * Mock an undici request with a defined error.
        */
-      replyWithError(error46) {
-        if (typeof error46 === "undefined") {
+      replyWithError(error47) {
+        if (typeof error47 === "undefined") {
           throw new InvalidArgumentError("error must be defined");
         }
-        const newMockDispatch = addMockDispatch(this[kDispatches], this[kDispatchKey], { error: error46 });
+        const newMockDispatch = addMockDispatch(this[kDispatches], this[kDispatchKey], { error: error47 });
         return new MockScope(newMockDispatch);
       }
       /**
@@ -13060,17 +13060,17 @@ var require_fetch = __commonJS({
         this.emit("terminated", reason);
       }
       // https://fetch.spec.whatwg.org/#fetch-controller-abort
-      abort(error46) {
+      abort(error47) {
         if (this.state !== "ongoing") {
           return;
         }
         this.state = "aborted";
-        if (!error46) {
-          error46 = new DOMException2("The operation was aborted.", "AbortError");
+        if (!error47) {
+          error47 = new DOMException2("The operation was aborted.", "AbortError");
         }
-        this.serializedAbortReason = error46;
-        this.connection?.destroy(error46);
-        this.emit("terminated", error46);
+        this.serializedAbortReason = error47;
+        this.connection?.destroy(error47);
+        this.emit("terminated", error47);
       }
     };
     function fetch(input, init = {}) {
@@ -13174,13 +13174,13 @@ var require_fetch = __commonJS({
         performance.markResourceTiming(timingInfo, originalURL.href, initiatorType, globalThis2, cacheState);
       }
     }
-    function abortFetch(p, request2, responseObject, error46) {
-      if (!error46) {
-        error46 = new DOMException2("The operation was aborted.", "AbortError");
+    function abortFetch(p, request2, responseObject, error47) {
+      if (!error47) {
+        error47 = new DOMException2("The operation was aborted.", "AbortError");
       }
-      p.reject(error46);
+      p.reject(error47);
       if (request2.body != null && isReadable(request2.body?.stream)) {
-        request2.body.stream.cancel(error46).catch((err) => {
+        request2.body.stream.cancel(error47).catch((err) => {
           if (err.code === "ERR_INVALID_STATE") {
             return;
           }
@@ -13192,7 +13192,7 @@ var require_fetch = __commonJS({
       }
       const response = responseObject[kState];
       if (response.body != null && isReadable(response.body?.stream)) {
-        response.body.stream.cancel(error46).catch((err) => {
+        response.body.stream.cancel(error47).catch((err) => {
           if (err.code === "ERR_INVALID_STATE") {
             return;
           }
@@ -13972,13 +13972,13 @@ var require_fetch = __commonJS({
               fetchParams.controller.ended = true;
               this.body.push(null);
             },
-            onError(error46) {
+            onError(error47) {
               if (this.abort) {
                 fetchParams.controller.off("terminated", this.abort);
               }
-              this.body?.destroy(error46);
-              fetchParams.controller.terminate(error46);
-              reject(error46);
+              this.body?.destroy(error47);
+              fetchParams.controller.terminate(error47);
+              reject(error47);
             },
             onUpgrade(status, headersList, socket) {
               if (status !== 101) {
@@ -14444,8 +14444,8 @@ var require_util4 = __commonJS({
                   }
                   fr[kResult] = result;
                   fireAProgressEvent("load", fr);
-                } catch (error46) {
-                  fr[kError] = error46;
+                } catch (error47) {
+                  fr[kError] = error47;
                   fireAProgressEvent("error", fr);
                 }
                 if (fr[kState] !== "loading") {
@@ -14454,13 +14454,13 @@ var require_util4 = __commonJS({
               });
               break;
             }
-          } catch (error46) {
+          } catch (error47) {
             if (fr[kAborted]) {
               return;
             }
             queueMicrotask(() => {
               fr[kState] = "done";
-              fr[kError] = error46;
+              fr[kError] = error47;
               fireAProgressEvent("error", fr);
               if (fr[kState] !== "loading") {
                 fireAProgressEvent("loadend", fr);
@@ -16477,11 +16477,11 @@ var require_connection = __commonJS({
         });
       }
     }
-    function onSocketError(error46) {
+    function onSocketError(error47) {
       const { ws } = this;
       ws[kReadyState] = states.CLOSING;
       if (channels.socketError.hasSubscribers) {
-        channels.socketError.publish(error46);
+        channels.socketError.publish(error47);
       }
       this.destroy();
     }
@@ -18128,12 +18128,12 @@ var require_oidc_utils = __commonJS({
         var _a2;
         return __awaiter(this, void 0, void 0, function* () {
           const httpclient = _OidcClient.createHttpClient();
-          const res = yield httpclient.getJson(id_token_url).catch((error46) => {
+          const res = yield httpclient.getJson(id_token_url).catch((error47) => {
             throw new Error(`Failed to get ID Token. 
  
-        Error Code : ${error46.statusCode}
+        Error Code : ${error47.statusCode}
  
-        Error Message: ${error46.message}`);
+        Error Message: ${error47.message}`);
           });
           const id_token = (_a2 = res.result) === null || _a2 === void 0 ? void 0 : _a2.value;
           if (!id_token) {
@@ -18154,8 +18154,8 @@ var require_oidc_utils = __commonJS({
             const id_token = yield _OidcClient.getCall(id_token_url);
             (0, core_1.setSecret)(id_token);
             return id_token;
-          } catch (error46) {
-            throw new Error(`Error message: ${error46.message}`);
+          } catch (error47) {
+            throw new Error(`Error message: ${error47.message}`);
           }
         });
       }
@@ -19277,7 +19277,7 @@ var require_toolrunner = __commonJS({
               this._debug(`STDIO streams have closed for tool '${this.toolPath}'`);
               state.CheckComplete();
             });
-            state.on("done", (error46, exitCode) => {
+            state.on("done", (error47, exitCode) => {
               if (stdbuffer.length > 0) {
                 this.emit("stdline", stdbuffer);
               }
@@ -19285,8 +19285,8 @@ var require_toolrunner = __commonJS({
                 this.emit("errline", errbuffer);
               }
               cp.removeAllListeners();
-              if (error46) {
-                reject(error46);
+              if (error47) {
+                reject(error47);
               } else {
                 resolve(exitCode);
               }
@@ -19381,14 +19381,14 @@ var require_toolrunner = __commonJS({
         this.emit("debug", message);
       }
       _setResult() {
-        let error46;
+        let error47;
         if (this.processExited) {
           if (this.processError) {
-            error46 = new Error(`There was an error when attempting to execute the process '${this.toolPath}'. This may indicate the process failed to start. Error: ${this.processError}`);
+            error47 = new Error(`There was an error when attempting to execute the process '${this.toolPath}'. This may indicate the process failed to start. Error: ${this.processError}`);
           } else if (this.processExitCode !== 0 && !this.options.ignoreReturnCode) {
-            error46 = new Error(`The process '${this.toolPath}' failed with exit code ${this.processExitCode}`);
+            error47 = new Error(`The process '${this.toolPath}' failed with exit code ${this.processExitCode}`);
           } else if (this.processStderr && this.options.failOnStdErr) {
-            error46 = new Error(`The process '${this.toolPath}' failed because one or more lines were written to the STDERR stream`);
+            error47 = new Error(`The process '${this.toolPath}' failed because one or more lines were written to the STDERR stream`);
           }
         }
         if (this.timeout) {
@@ -19396,7 +19396,7 @@ var require_toolrunner = __commonJS({
           this.timeout = null;
         }
         this.done = true;
-        this.emit("done", error46, this.processExitCode);
+        this.emit("done", error47, this.processExitCode);
       }
       static HandleTimeout(state) {
         if (state.done) {
@@ -19779,21 +19779,21 @@ Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
     exports2.setCommandEcho = setCommandEcho;
     function setFailed2(message) {
       process.exitCode = ExitCode.Failure;
-      error46(message);
+      error47(message);
     }
     exports2.setFailed = setFailed2;
     function isDebug() {
       return process.env["RUNNER_DEBUG"] === "1";
     }
     exports2.isDebug = isDebug;
-    function debug(message) {
+    function debug2(message) {
       (0, command_1.issueCommand)("debug", {}, message);
     }
-    exports2.debug = debug;
-    function error46(message, properties = {}) {
+    exports2.debug = debug2;
+    function error47(message, properties = {}) {
       (0, command_1.issueCommand)("error", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
-    exports2.error = error46;
+    exports2.error = error47;
     function warning(message, properties = {}) {
       (0, command_1.issueCommand)("warning", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
@@ -20095,8 +20095,8 @@ var require_add = __commonJS({
       }
       if (kind === "error") {
         hook2 = function(method, options) {
-          return Promise.resolve().then(method.bind(null, options)).catch(function(error46) {
-            return orig(error46, options);
+          return Promise.resolve().then(method.bind(null, options)).catch(function(error47) {
+            return orig(error47, options);
           });
         };
       }
@@ -20889,7 +20889,7 @@ function fetchWrapper(requestOptions) {
     }
     if (status >= 400) {
       const data = await getResponseData(response);
-      const error46 = new RequestError(toErrorMessage(data), status, {
+      const error47 = new RequestError(toErrorMessage(data), status, {
         response: {
           url: url2,
           status,
@@ -20898,7 +20898,7 @@ function fetchWrapper(requestOptions) {
         },
         request: requestOptions
       });
-      throw error46;
+      throw error47;
     }
     return parseSuccessResponseBody ? await getResponseData(response) : response.body;
   }).then((data) => {
@@ -20908,17 +20908,17 @@ function fetchWrapper(requestOptions) {
       headers,
       data
     };
-  }).catch((error46) => {
-    if (error46 instanceof RequestError)
-      throw error46;
-    else if (error46.name === "AbortError")
-      throw error46;
-    let message = error46.message;
-    if (error46.name === "TypeError" && "cause" in error46) {
-      if (error46.cause instanceof Error) {
-        message = error46.cause.message;
-      } else if (typeof error46.cause === "string") {
-        message = error46.cause;
+  }).catch((error47) => {
+    if (error47 instanceof RequestError)
+      throw error47;
+    else if (error47.name === "AbortError")
+      throw error47;
+    let message = error47.message;
+    if (error47.name === "TypeError" && "cause" in error47) {
+      if (error47.cause instanceof Error) {
+        message = error47.cause.message;
+      } else if (typeof error47.cause === "string") {
+        message = error47.cause;
       }
     }
     throw new RequestError(message, 500, {
@@ -23557,9 +23557,9 @@ function iterator(octokit, route, parameters) {
             /<([^<>]+)>;\s*rel="next"/
           ) || [])[1];
           return { value: normalizedResponse };
-        } catch (error46) {
-          if (error46.status !== 409)
-            throw error46;
+        } catch (error47) {
+          if (error47.status !== 409)
+            throw error47;
           url2 = "";
           return {
             value: {
@@ -24005,9 +24005,9 @@ var require_constants6 = __commonJS({
 var require_debug = __commonJS({
   "node_modules/semver/internal/debug.js"(exports2, module2) {
     "use strict";
-    var debug = typeof process === "object" && process.env && process.env.NODE_DEBUG && /\bsemver\b/i.test(process.env.NODE_DEBUG) ? (...args) => console.error("SEMVER", ...args) : () => {
+    var debug2 = typeof process === "object" && process.env && process.env.NODE_DEBUG && /\bsemver\b/i.test(process.env.NODE_DEBUG) ? (...args) => console.error("SEMVER", ...args) : () => {
     };
-    module2.exports = debug;
+    module2.exports = debug2;
   }
 });
 
@@ -24020,7 +24020,7 @@ var require_re = __commonJS({
       MAX_SAFE_BUILD_LENGTH,
       MAX_LENGTH
     } = require_constants6();
-    var debug = require_debug();
+    var debug2 = require_debug();
     exports2 = module2.exports = {};
     var re = exports2.re = [];
     var safeRe = exports2.safeRe = [];
@@ -24043,7 +24043,7 @@ var require_re = __commonJS({
     var createToken = (name, value, isGlobal) => {
       const safe = makeSafeRegex(value);
       const index = R++;
-      debug(name, index, value);
+      debug2(name, index, value);
       t[name] = index;
       src[index] = value;
       safeSrc[index] = safe;
@@ -24147,7 +24147,7 @@ var require_identifiers = __commonJS({
 var require_semver = __commonJS({
   "node_modules/semver/classes/semver.js"(exports2, module2) {
     "use strict";
-    var debug = require_debug();
+    var debug2 = require_debug();
     var { MAX_LENGTH, MAX_SAFE_INTEGER } = require_constants6();
     var { safeRe: re, t } = require_re();
     var parseOptions = require_parse_options();
@@ -24169,7 +24169,7 @@ var require_semver = __commonJS({
             `version is longer than ${MAX_LENGTH} characters`
           );
         }
-        debug("SemVer", version2, options);
+        debug2("SemVer", version2, options);
         this.options = options;
         this.loose = !!options.loose;
         this.includePrerelease = !!options.includePrerelease;
@@ -24217,7 +24217,7 @@ var require_semver = __commonJS({
         return this.version;
       }
       compare(other) {
-        debug("SemVer.compare", this.version, this.options, other);
+        debug2("SemVer.compare", this.version, this.options, other);
         if (!(other instanceof _SemVer)) {
           if (typeof other === "string" && other === this.version) {
             return 0;
@@ -24268,7 +24268,7 @@ var require_semver = __commonJS({
         do {
           const a = this.prerelease[i];
           const b = other.prerelease[i];
-          debug("prerelease compare", i, a, b);
+          debug2("prerelease compare", i, a, b);
           if (a === void 0 && b === void 0) {
             return 0;
           } else if (b === void 0) {
@@ -24290,7 +24290,7 @@ var require_semver = __commonJS({
         do {
           const a = this.build[i];
           const b = other.build[i];
-          debug("build compare", i, a, b);
+          debug2("build compare", i, a, b);
           if (a === void 0 && b === void 0) {
             return 0;
           } else if (b === void 0) {
@@ -24918,21 +24918,21 @@ var require_range = __commonJS({
         const loose = this.options.loose;
         const hr = loose ? re[t.HYPHENRANGELOOSE] : re[t.HYPHENRANGE];
         range = range.replace(hr, hyphenReplace(this.options.includePrerelease));
-        debug("hyphen replace", range);
+        debug2("hyphen replace", range);
         range = range.replace(re[t.COMPARATORTRIM], comparatorTrimReplace);
-        debug("comparator trim", range);
+        debug2("comparator trim", range);
         range = range.replace(re[t.TILDETRIM], tildeTrimReplace);
-        debug("tilde trim", range);
+        debug2("tilde trim", range);
         range = range.replace(re[t.CARETTRIM], caretTrimReplace);
-        debug("caret trim", range);
+        debug2("caret trim", range);
         let rangeList = range.split(" ").map((comp) => parseComparator(comp, this.options)).join(" ").split(/\s+/).map((comp) => replaceGTE0(comp, this.options));
         if (loose) {
           rangeList = rangeList.filter((comp) => {
-            debug("loose invalid filter", comp, this.options);
+            debug2("loose invalid filter", comp, this.options);
             return !!comp.match(re[t.COMPARATORLOOSE]);
           });
         }
-        debug("range list", rangeList);
+        debug2("range list", rangeList);
         const rangeMap = /* @__PURE__ */ new Map();
         const comparators = rangeList.map((comp) => new Comparator(comp, this.options));
         for (const comp of comparators) {
@@ -24987,7 +24987,7 @@ var require_range = __commonJS({
     var cache = new LRU();
     var parseOptions = require_parse_options();
     var Comparator = require_comparator();
-    var debug = require_debug();
+    var debug2 = require_debug();
     var SemVer = require_semver();
     var {
       safeRe: re,
@@ -25013,15 +25013,15 @@ var require_range = __commonJS({
     };
     var parseComparator = (comp, options) => {
       comp = comp.replace(re[t.BUILD], "");
-      debug("comp", comp, options);
+      debug2("comp", comp, options);
       comp = replaceCarets(comp, options);
-      debug("caret", comp);
+      debug2("caret", comp);
       comp = replaceTildes(comp, options);
-      debug("tildes", comp);
+      debug2("tildes", comp);
       comp = replaceXRanges(comp, options);
-      debug("xrange", comp);
+      debug2("xrange", comp);
       comp = replaceStars(comp, options);
-      debug("stars", comp);
+      debug2("stars", comp);
       return comp;
     };
     var isX = (id) => !id || id.toLowerCase() === "x" || id === "*";
@@ -25031,7 +25031,7 @@ var require_range = __commonJS({
     var replaceTilde = (comp, options) => {
       const r = options.loose ? re[t.TILDELOOSE] : re[t.TILDE];
       return comp.replace(r, (_, M, m, p, pr) => {
-        debug("tilde", comp, _, M, m, p, pr);
+        debug2("tilde", comp, _, M, m, p, pr);
         let ret;
         if (isX(M)) {
           ret = "";
@@ -25040,12 +25040,12 @@ var require_range = __commonJS({
         } else if (isX(p)) {
           ret = `>=${M}.${m}.0 <${M}.${+m + 1}.0-0`;
         } else if (pr) {
-          debug("replaceTilde pr", pr);
+          debug2("replaceTilde pr", pr);
           ret = `>=${M}.${m}.${p}-${pr} <${M}.${+m + 1}.0-0`;
         } else {
           ret = `>=${M}.${m}.${p} <${M}.${+m + 1}.0-0`;
         }
-        debug("tilde return", ret);
+        debug2("tilde return", ret);
         return ret;
       });
     };
@@ -25053,11 +25053,11 @@ var require_range = __commonJS({
       return comp.trim().split(/\s+/).map((c) => replaceCaret(c, options)).join(" ");
     };
     var replaceCaret = (comp, options) => {
-      debug("caret", comp, options);
+      debug2("caret", comp, options);
       const r = options.loose ? re[t.CARETLOOSE] : re[t.CARET];
       const z = options.includePrerelease ? "-0" : "";
       return comp.replace(r, (_, M, m, p, pr) => {
-        debug("caret", comp, _, M, m, p, pr);
+        debug2("caret", comp, _, M, m, p, pr);
         let ret;
         if (isX(M)) {
           ret = "";
@@ -25070,7 +25070,7 @@ var require_range = __commonJS({
             ret = `>=${M}.${m}.0${z} <${+M + 1}.0.0-0`;
           }
         } else if (pr) {
-          debug("replaceCaret pr", pr);
+          debug2("replaceCaret pr", pr);
           if (M === "0") {
             if (m === "0") {
               ret = `>=${M}.${m}.${p}-${pr} <${M}.${m}.${+p + 1}-0`;
@@ -25081,7 +25081,7 @@ var require_range = __commonJS({
             ret = `>=${M}.${m}.${p}-${pr} <${+M + 1}.0.0-0`;
           }
         } else {
-          debug("no pr");
+          debug2("no pr");
           if (M === "0") {
             if (m === "0") {
               ret = `>=${M}.${m}.${p}${z} <${M}.${m}.${+p + 1}-0`;
@@ -25092,19 +25092,19 @@ var require_range = __commonJS({
             ret = `>=${M}.${m}.${p} <${+M + 1}.0.0-0`;
           }
         }
-        debug("caret return", ret);
+        debug2("caret return", ret);
         return ret;
       });
     };
     var replaceXRanges = (comp, options) => {
-      debug("replaceXRanges", comp, options);
+      debug2("replaceXRanges", comp, options);
       return comp.split(/\s+/).map((c) => replaceXRange(c, options)).join(" ");
     };
     var replaceXRange = (comp, options) => {
       comp = comp.trim();
       const r = options.loose ? re[t.XRANGELOOSE] : re[t.XRANGE];
       return comp.replace(r, (ret, gtlt, M, m, p, pr) => {
-        debug("xRange", comp, ret, gtlt, M, m, p, pr);
+        debug2("xRange", comp, ret, gtlt, M, m, p, pr);
         const xM = isX(M);
         const xm = xM || isX(m);
         const xp = xm || isX(p);
@@ -25151,16 +25151,16 @@ var require_range = __commonJS({
         } else if (xp) {
           ret = `>=${M}.${m}.0${pr} <${M}.${+m + 1}.0-0`;
         }
-        debug("xRange return", ret);
+        debug2("xRange return", ret);
         return ret;
       });
     };
     var replaceStars = (comp, options) => {
-      debug("replaceStars", comp, options);
+      debug2("replaceStars", comp, options);
       return comp.trim().replace(re[t.STAR], "");
     };
     var replaceGTE0 = (comp, options) => {
-      debug("replaceGTE0", comp, options);
+      debug2("replaceGTE0", comp, options);
       return comp.trim().replace(re[options.includePrerelease ? t.GTE0PRE : t.GTE0], "");
     };
     var hyphenReplace = (incPr) => ($0, from, fM, fm, fp, fpr, fb, to, tM, tm, tp, tpr) => {
@@ -25198,7 +25198,7 @@ var require_range = __commonJS({
       }
       if (version2.prerelease.length && !options.includePrerelease) {
         for (let i = 0; i < set2.length; i++) {
-          debug(set2[i].semver);
+          debug2(set2[i].semver);
           if (set2[i].semver === Comparator.ANY) {
             continue;
           }
@@ -25235,7 +25235,7 @@ var require_comparator = __commonJS({
           }
         }
         comp = comp.trim().split(/\s+/).join(" ");
-        debug("comparator", comp, options);
+        debug2("comparator", comp, options);
         this.options = options;
         this.loose = !!options.loose;
         this.parse(comp);
@@ -25244,7 +25244,7 @@ var require_comparator = __commonJS({
         } else {
           this.value = this.operator + this.semver.version;
         }
-        debug("comp", this);
+        debug2("comp", this);
       }
       parse(comp) {
         const r = this.options.loose ? re[t.COMPARATORLOOSE] : re[t.COMPARATOR];
@@ -25266,7 +25266,7 @@ var require_comparator = __commonJS({
         return this.value;
       }
       test(version2) {
-        debug("Comparator.test", version2, this.options.loose);
+        debug2("Comparator.test", version2, this.options.loose);
         if (this.semver === ANY || version2 === ANY) {
           return true;
         }
@@ -25323,7 +25323,7 @@ var require_comparator = __commonJS({
     var parseOptions = require_parse_options();
     var { safeRe: re, t } = require_re();
     var cmp = require_cmp();
-    var debug = require_debug();
+    var debug2 = require_debug();
     var SemVer = require_semver();
     var Range = require_range();
   }
@@ -27125,10 +27125,10 @@ var initializer = (inst, def) => {
 };
 var $ZodError = $constructor("$ZodError", initializer);
 var $ZodRealError = $constructor("$ZodError", initializer, { Parent: Error });
-function flattenError(error46, mapper = (issue2) => issue2.message) {
+function flattenError(error47, mapper = (issue2) => issue2.message) {
   const fieldErrors = {};
   const formErrors = [];
-  for (const sub of error46.issues) {
+  for (const sub of error47.issues) {
     if (sub.path.length > 0) {
       fieldErrors[sub.path[0]] = fieldErrors[sub.path[0]] || [];
       fieldErrors[sub.path[0]].push(mapper(sub));
@@ -27138,10 +27138,10 @@ function flattenError(error46, mapper = (issue2) => issue2.message) {
   }
   return { formErrors, fieldErrors };
 }
-function formatError(error46, mapper = (issue2) => issue2.message) {
+function formatError(error47, mapper = (issue2) => issue2.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error47) => {
-    for (const issue2 of error47.issues) {
+  const processError = (error48) => {
+    for (const issue2 of error48.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
         issue2.errors.map((issues) => processError({ issues }));
       } else if (issue2.code === "invalid_key") {
@@ -27168,14 +27168,14 @@ function formatError(error46, mapper = (issue2) => issue2.message) {
       }
     }
   };
-  processError(error46);
+  processError(error47);
   return fieldErrors;
 }
-function treeifyError(error46, mapper = (issue2) => issue2.message) {
+function treeifyError(error47, mapper = (issue2) => issue2.message) {
   const result = { errors: [] };
-  const processError = (error47, path = []) => {
+  const processError = (error48, path = []) => {
     var _a2, _b;
-    for (const issue2 of error47.issues) {
+    for (const issue2 of error48.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
         issue2.errors.map((issues) => processError({ issues }, issue2.path));
       } else if (issue2.code === "invalid_key") {
@@ -27210,7 +27210,7 @@ function treeifyError(error46, mapper = (issue2) => issue2.message) {
       }
     }
   };
-  processError(error46);
+  processError(error47);
   return result;
 }
 function toDotPath(_path) {
@@ -27231,9 +27231,9 @@ function toDotPath(_path) {
   }
   return segs.join("");
 }
-function prettifyError(error46) {
+function prettifyError(error47) {
   const lines = [];
-  const issues = [...error46.issues].sort((a, b) => (a.path ?? []).length - (b.path ?? []).length);
+  const issues = [...error47.issues].sort((a, b) => (a.path ?? []).length - (b.path ?? []).length);
   for (const issue2 of issues) {
     lines.push(`\u2716 ${issue2.message}`);
     if (issue2.path?.length)
@@ -38551,21 +38551,43 @@ function extractResources(names, humanReadablePlan) {
     {}
   );
 }
+function arraysEqual(a, b) {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
 function internalRenderPlan(structuredPlan, humanReadablePlan) {
   if (structuredPlan.resource_changes === void 0 || structuredPlan.resource_changes.length === 0) {
     return {};
   }
-  const createdResources = structuredPlan.resource_changes.filter((r) => r.change.actions.toString() === ["create"].toString()).map((r) => r.address);
-  const updatedResources = structuredPlan.resource_changes.filter((r) => r.change.actions.toString() === ["update"].toString()).map((r) => r.address);
-  const recreatedResources = structuredPlan.resource_changes.filter(
-    (r) => r.change.actions.toString() === ["delete", "create"].toString() || r.change.actions.toString() === ["create", "delete"].toString()
-  ).map((r) => r.address);
-  const deletedResources = structuredPlan.resource_changes.filter((r) => r.change.actions.toString() === ["delete"].toString()).map((r) => r.address);
+  const { created, updated, recreated, deleted } = structuredPlan.resource_changes.reduce(
+    (acc, resource) => {
+      const actions = resource.change.actions;
+      if (arraysEqual(actions, ["create"])) {
+        acc.created.push(resource.address);
+      } else if (arraysEqual(actions, ["update"])) {
+        acc.updated.push(resource.address);
+      } else if (arraysEqual(actions, ["delete", "create"]) || arraysEqual(actions, ["create", "delete"])) {
+        acc.recreated.push(resource.address);
+      } else if (arraysEqual(actions, ["delete"])) {
+        acc.deleted.push(resource.address);
+      }
+      return acc;
+    },
+    {
+      created: [],
+      updated: [],
+      recreated: [],
+      deleted: []
+    }
+  );
   return {
-    createdResources: extractResources(createdResources, humanReadablePlan),
-    updatedResources: extractResources(updatedResources, humanReadablePlan),
-    recreatedResources: extractResources(recreatedResources, humanReadablePlan),
-    deletedResources: extractResources(deletedResources, humanReadablePlan)
+    createdResources: extractResources(created, humanReadablePlan),
+    updatedResources: extractResources(updated, humanReadablePlan),
+    recreatedResources: extractResources(recreated, humanReadablePlan),
+    deletedResources: extractResources(deleted, humanReadablePlan)
   };
 }
 async function renderPlan({
@@ -38577,7 +38599,15 @@ async function renderPlan({
     cwd: workingDirectory,
     silent: true
   };
-  const structuredPlanfile = await exec.getExecOutput(terraformCommand, ["show", "-json", planfile], options).then((output) => JSON.parse(output.stdout)).then((json2) => parsePlanfileJSON(json2));
+  const structuredPlanfile = await exec.getExecOutput(terraformCommand, ["show", "-json", planfile], options).then((output) => {
+    try {
+      return JSON.parse(output.stdout);
+    } catch (error47) {
+      throw new Error(
+        `Failed to parse Terraform plan JSON output. This may indicate the terraform show command failed or produced invalid JSON. Original error: ${error47 instanceof Error ? error47.message : String(error47)}`
+      );
+    }
+  }).then((json2) => parsePlanfileJSON(json2));
   const humanReadablePlanfile = await exec.getExecOutput(terraformCommand, ["show", "-no-color", planfile], options).then((output) => output.stdout);
   return internalRenderPlan(structuredPlanfile, humanReadablePlanfile);
 }
@@ -38601,21 +38631,33 @@ function renderBody(plan) {
   if (planIsEmpty(plan)) {
     return "**\u2192 No Resource Changes!**";
   }
-  let body = `**\u2192 Resource Changes: ${Object.keys(plan.createdResources ?? {}).length} to create, ${Object.keys(plan.updatedResources ?? {}).length} to update, ${Object.keys(plan.recreatedResources ?? {}).length} to re-create, ${Object.keys(plan.deletedResources ?? {}).length} to delete.**`;
+  const createdCount = Object.keys(plan.createdResources ?? {}).length;
+  const updatedCount = Object.keys(plan.updatedResources ?? {}).length;
+  const recreatedCount = Object.keys(plan.recreatedResources ?? {}).length;
+  const deletedCount = Object.keys(plan.deletedResources ?? {}).length;
+  let body = `**\u2192 Resource Changes: ${createdCount} to create, ${updatedCount} to update, ${recreatedCount} to recreate, ${deletedCount} to delete.**`;
   if (plan.createdResources) {
-    body += "\n\n### \u2728 Create";
+    body += `
+
+### \u2728 Creating`;
     body += renderResources(plan.createdResources);
   }
   if (plan.updatedResources) {
-    body += "\n\n### \u267B\uFE0F Update";
+    body += `
+
+### \u267B\uFE0F Updating`;
     body += renderResources(plan.updatedResources);
   }
   if (plan.recreatedResources) {
-    body += "\n\n### \u2699\uFE0F Re-Create";
+    body += `
+
+### \u2699\uFE0F Recreating`;
     body += renderResources(plan.recreatedResources);
   }
   if (plan.deletedResources) {
-    body += "\n\n### \u{1F5D1}\uFE0F Delete";
+    body += `
+
+### \u{1F5D1}\uFE0F Deleting`;
     body += renderResources(plan.deletedResources);
   }
   return body;
@@ -38708,9 +38750,32 @@ async function run() {
 async function main() {
   try {
     await run();
-  } catch (error46) {
-    if (error46 instanceof Error) {
-      core.setFailed(error46.message);
+  } catch (error47) {
+    if (error47 instanceof Error) {
+      core.error(`Error Type: ${error47.constructor.name}`);
+      core.error(`Error Message: ${error47.message}`);
+      if (error47.stack) {
+        core.debug(`Stack Trace: ${error47.stack}`);
+      }
+      if (error47.message.includes("terraform")) {
+        core.error("This appears to be a Terraform-related error. Please verify:");
+        core.error("  - Terraform is properly installed and accessible");
+        core.error("  - The planfile exists and is valid");
+        core.error("  - The working directory is correct");
+      } else if (error47.message.includes("GitHub")) {
+        core.error("This appears to be a GitHub API error. Please verify:");
+        core.error("  - The GitHub token has the necessary permissions");
+        core.error("  - The repository exists and is accessible");
+      } else if (error47.message.includes("parse") || error47.message.includes("JSON")) {
+        core.error("This appears to be a parsing error. Please verify:");
+        core.error("  - The Terraform plan output is valid");
+        core.error("  - The Terraform version is compatible");
+      }
+      core.setFailed(error47.message);
+    } else {
+      const errorMessage = String(error47);
+      core.error(`Unknown error type: ${errorMessage}`);
+      core.setFailed(errorMessage);
     }
   }
 }
