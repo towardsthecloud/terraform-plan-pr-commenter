@@ -2,6 +2,8 @@
 
 A GitHub Action that posts the output of `terraform plan` as a comment on Pull Requests. This action helps teams review infrastructure changes directly within their PR workflow, making it easier to catch potential issues before applying Terraform changes.
 
+![Terraform Plan PR Comment Example](./images/terraform-plan-pr-comment-example.png)
+
 ## Features
 
 - Automatically posts formatted Terraform plan output to PR comments
