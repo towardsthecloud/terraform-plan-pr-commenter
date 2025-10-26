@@ -16,13 +16,14 @@ A GitHub Action that posts the output of `terraform plan` as a comment on Pull R
 
 ## Inputs
 
-| Input               | Description                                                            | Required | Default               |
-| ------------------- | ---------------------------------------------------------------------- | -------- | --------------------- |
-| `planfile`          | Path to the Terraform plan file to post as comment in the Pull Request | Yes      | -                     |
-| `token`             | The GitHub or PAT token to use for posting comments to Pull Requests   | Yes      | `${{ github.token }}` |
-| `header`            | Header to use for the Pull Request comment                             | Yes      | `📝 Terraform Plan`    |
-| `terraform-cmd`     | Command to execute for calling the Terraform binary                    | Yes      | `terraform`           |
-| `working-directory` | Directory where the Terraform binary should be called                  | Yes      | `.`                   |
+| Input               | Description                                                                         | Required | Default               |
+| ------------------- | ----------------------------------------------------------------------------------- | -------- | --------------------- |
+| `planfile`          | Path to the Terraform plan file to post as comment in the Pull Request              | Yes      | -                     |
+| `terraform-cmd`     | Command to execute for calling the Terraform binary                                 | No       | `terraform`           |
+| `working-directory` | Directory where the Terraform binary should be called                               | No       | `.`                   |
+| `token`             | The GitHub or PAT token to use for posting comments to Pull Requests                | No       | `${{ github.token }}` |
+| `header`            | Header to use for the Pull Request comment                                          | No       | -                     |
+| `aws-region`        | The AWS region where the infrastructure changes are being applied (e.g., us-east-1) | No       | -                     |
 
 ## Outputs
 
@@ -36,7 +37,7 @@ A GitHub Action that posts the output of `terraform plan` as a comment on Pull R
 ### Example 1: Direct Usage in Workflow
 
 ```yaml
-name: Terraform Plan
+name: Terraform Plan and Comment on PR
 
 on:
   pull_request:
@@ -48,8 +49,8 @@ permissions:
   contents: read
 
 jobs:
-  terraform-plan:
-    name: Terraform Plan
+  plan-and-comment:
+    name: Run Terraform Plan and Post PR Comment
     runs-on: ubuntu-latest
 
     steps:
@@ -69,8 +70,7 @@ jobs:
         uses: towardsthecloud/terraform-plan-pr-commenter@v1
         with:
           planfile: tfplan.binary
-          header: |
-            ## Terraform Plan for production in us-east-1
+          aws-region: us-east-1
 ```
 
 ### Example 2: Reusable Workflow Call
@@ -78,7 +78,7 @@ jobs:
 Create a reusable workflow in `.github/workflows/terraform-plan-comment.yml`:
 
 ```yaml
-name: Terraform Plan Comment
+name: Reusable Terraform Plan PR Comment
 
 on:
   workflow_call:
@@ -86,16 +86,13 @@ on:
       aws-region:
         description: 'AWS Region where resources will be deployed'
         type: string
-      environment:
-        description: 'Environment name (e.g., production, staging)'
-        type: string
       working-directory:
         description: 'Terraform working directory'
         type: string
 
 jobs:
-  post-plan-comment:
-    name: Post Terraform Plan Comment
+  comment-terraform-plan:
+    name: Post Terraform Plan as PR Comment
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -123,14 +120,13 @@ jobs:
         with:
           planfile: tfplan.binary
           working-directory: ${{ inputs.working-directory }}
-          header: |
-            ## Terraform Plan for ${{ inputs.environment }} in ${{ inputs.aws-region }}
+          aws-region: ${{ inputs.aws-region }}
 ```
 
 Then call this workflow from your main Terraform workflow:
 
 ```yaml
-name: Terraform CI
+name: Terraform Plan with Artifact Upload
 
 on:
   pull_request:
@@ -138,8 +134,8 @@ on:
       - main
 
 jobs:
-  terraform-plan:
-    name: Terraform Plan
+  plan-infrastructure:
+    name: Generate and Upload Terraform Plan
     runs-on: ubuntu-latest
 
     steps:
@@ -164,19 +160,18 @@ jobs:
           path: ./infrastructure/tfplan.binary
           retention-days: 5
 
-  comment-plan:
-    needs: terraform-plan
+  post-plan-comment:
+    needs: plan-infrastructure
     uses: ./.github/workflows/terraform-plan-comment.yml
     with:
       aws-region: us-east-1
-      environment: production
       working-directory: ./infrastructure
 ```
 
 ### Example 3: Multi-Environment Setup
 
 ```yaml
-name: Multi-Environment Terraform Plan
+name: Terraform Plan for Multiple Environments
 
 on:
   pull_request:
@@ -188,13 +183,13 @@ permissions:
   contents: read
 
 jobs:
-  plan-production:
-    name: Plan Production
+  plan-production-env:
+    name: Plan and Comment - Production (us-east-1)
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -212,17 +207,15 @@ jobs:
         with:
           planfile: tfplan.binary
           working-directory: ./environments/production
-          header: |
-            ## :rocket: Production Environment (us-east-1)
-          skip-empty: true
+          aws-region: us-east-1
 
-  plan-staging:
-    name: Plan Staging
+  plan-staging-env:
+    name: Plan and Comment - Staging (us-west-2)
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -240,9 +233,7 @@ jobs:
         with:
           planfile: tfplan.binary
           working-directory: ./environments/staging
-          header: |
-            ## :test_tube: Staging Environment (us-west-2)
-          skip-empty: true
+          aws-region: us-west-2
 ```
 
 ## Permissions
@@ -258,7 +249,6 @@ permissions:
 ## Notes
 
 - The action will update the same comment on subsequent pushes to the PR, avoiding comment spam
-- When `skip-empty` is set to `true`, no comment will be posted if the plan shows no changes
 - The `planfile` should be a binary plan file generated with `terraform plan -out=<filename>`
 - Make sure to run `terraform init` before using this action, as it needs to read the plan file
 
