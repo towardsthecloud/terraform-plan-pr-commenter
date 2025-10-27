@@ -86,10 +86,11 @@ on:
       planfile:
         description: 'Path to the Terraform plan file'
         type: string
-        default: 'tfplan.binary'
+        required: true
       working-directory:
         description: 'Terraform working directory'
         type: string
+        required: true
       aws-region:
         description: 'AWS Region where resources will be deployed'
         type: string
@@ -109,7 +110,7 @@ jobs:
       - name: Download Plan Artifact
         uses: actions/download-artifact@v5
         with:
-          name: 'terraform-plan'
+          name: terraform-plan-artifact
           path: ${{ inputs.working-directory }}
 
       - name: Setup Terraform
@@ -160,9 +161,9 @@ jobs:
       - name: Upload Plan Artifact
         uses: actions/upload-artifact@v5
         with:
-          name: terraform-plan
+          name: terraform-plan-artifact
           path: ./infrastructure/tfplan.binary
-          retention-days: 5
+          retention-days: 1
 
   post-plan-comment:
     needs: plan-infrastructure
@@ -171,74 +172,6 @@ jobs:
       planfile: tfplan.binary
       working-directory: ./infrastructure
       aws-region: us-east-1
-```
-
-### Example 3: Multi-Environment Setup
-
-```yaml
-name: Terraform Plan for Multiple Environments
-
-on:
-  pull_request:
-    branches:
-      - main
-
-permissions:
-  pull-requests: write
-  contents: read
-
-jobs:
-  plan-production-env:
-    name: Plan and Comment - Production (us-east-1)
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v5
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Terraform Init
-        run: terraform init
-        working-directory: ./environments/production
-
-      - name: Terraform Plan
-        run: terraform plan -out=tfplan.binary
-        working-directory: ./environments/production
-
-      - name: Post Production Plan Comment
-        uses: towardsthecloud/terraform-plan-pr-commenter@v1
-        with:
-          planfile: tfplan.binary
-          working-directory: ./environments/production
-          aws-region: us-east-1
-
-  plan-staging-env:
-    name: Plan and Comment - Staging (us-west-2)
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v5
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Terraform Init
-        run: terraform init
-        working-directory: ./environments/staging
-
-      - name: Terraform Plan
-        run: terraform plan -out=tfplan.binary
-        working-directory: ./environments/staging
-
-      - name: Post Staging Plan Comment
-        uses: towardsthecloud/terraform-plan-pr-commenter@v1
-        with:
-          planfile: tfplan.binary
-          working-directory: ./environments/staging
-          aws-region: us-west-2
 ```
 
 ## Permissions
