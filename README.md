@@ -83,11 +83,15 @@ name: Reusable Terraform Plan PR Comment
 on:
   workflow_call:
     inputs:
-      aws-region:
-        description: 'AWS Region where resources will be deployed'
+      planfile:
+        description: 'Path to the Terraform plan file'
         type: string
+        default: 'tfplan.binary'
       working-directory:
         description: 'Terraform working directory'
+        type: string
+      aws-region:
+        description: 'AWS Region where resources will be deployed'
         type: string
 
 jobs:
@@ -118,7 +122,7 @@ jobs:
       - name: Post Terraform Plan Comment in PR
         uses: towardsthecloud/terraform-plan-pr-commenter@v1
         with:
-          planfile: tfplan.binary
+          planfile: ${{ inputs.planfile }}
           working-directory: ${{ inputs.working-directory }}
           aws-region: ${{ inputs.aws-region }}
 ```
@@ -164,8 +168,9 @@ jobs:
     needs: plan-infrastructure
     uses: ./.github/workflows/terraform-plan-comment.yml
     with:
-      aws-region: us-east-1
+      planfile: tfplan.binary
       working-directory: ./infrastructure
+      aws-region: us-east-1
 ```
 
 ### Example 3: Multi-Environment Setup
