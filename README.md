@@ -174,6 +174,10 @@ jobs:
       aws-region: us-east-1
 ```
 
+### Try It Out
+
+Want to test this action? Check out the [AWS Terraform Starter Kit](https://github.com/towardsthecloud/aws-terraform-starter-kit) we created. It's a production-ready Terraform template with this workflow already configured.
+
 ## Permissions
 
 This action requires the following permissions:
