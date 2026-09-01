@@ -6,7 +6,7 @@ branding:
   color: orange
 inputs:
   planfile:
-    description: The path to the Terraform plan file to post as comment in the Pull Request.
+    description: The path to the planfile whose changes to post.
     required: true
   terraform-cmd:
     description: The command to execute for calling the Terraform binary.
@@ -26,6 +26,8 @@ outputs:
     description: The raw markdown output of the `terraform plan` command
   empty:
     description: Whether the `terraform plan` command contains any change or not
+  resource-changes:
+    description: The validated CloudBurn Resource Change Set JSON
 runs:
   using: node24
-  main: src/index.js
+  main: build/index-terraform.js

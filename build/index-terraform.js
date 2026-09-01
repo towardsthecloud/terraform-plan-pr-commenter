@@ -19752,10 +19752,10 @@ Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
       (0, command_1.issueCommand)("error", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
     exports2.error = error52;
-    function warning2(message, properties = {}) {
+    function warning3(message, properties = {}) {
       (0, command_1.issueCommand)("warning", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
-    exports2.warning = warning2;
+    exports2.warning = warning3;
     function notice(message, properties = {}) {
       (0, command_1.issueCommand)("notice", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
@@ -25933,203 +25933,8 @@ var require_semver2 = __commonJS({
 var core5 = __toESM(require_core());
 var github3 = __toESM(require_github());
 
-// src/utils/aws-regions.ts
-var VALID_AWS_REGIONS = [
-  // US Regions
-  "us-east-1",
-  // N. Virginia
-  "us-east-2",
-  // Ohio
-  "us-west-1",
-  // N. California
-  "us-west-2",
-  // Oregon
-  // Africa
-  "af-south-1",
-  // Cape Town
-  // Asia Pacific
-  "ap-east-1",
-  // Hong Kong
-  "ap-south-1",
-  // Mumbai
-  "ap-south-2",
-  // Hyderabad
-  "ap-southeast-1",
-  // Singapore
-  "ap-southeast-2",
-  // Sydney
-  "ap-southeast-3",
-  // Jakarta
-  "ap-southeast-4",
-  // Melbourne
-  "ap-northeast-1",
-  // Tokyo
-  "ap-northeast-2",
-  // Seoul
-  "ap-northeast-3",
-  // Osaka
-  // Canada
-  "ca-central-1",
-  // Canada (Central)
-  "ca-west-1",
-  // Canada West (Calgary)
-  // Europe
-  "eu-central-1",
-  // Frankfurt
-  "eu-central-2",
-  // Zurich
-  "eu-west-1",
-  // Ireland
-  "eu-west-2",
-  // London
-  "eu-west-3",
-  // Paris
-  "eu-north-1",
-  // Stockholm
-  "eu-south-1",
-  // Milan
-  "eu-south-2",
-  // Spain
-  // Israel
-  "il-central-1",
-  // Tel Aviv
-  // Middle East
-  "me-central-1",
-  // UAE
-  "me-south-1",
-  // Bahrain
-  // South America
-  "sa-east-1"
-  // São Paulo
-];
-function isValidAwsRegion(region) {
-  if (!region) {
-    return true;
-  }
-  return VALID_AWS_REGIONS.includes(region);
-}
-function getAwsRegionsDocUrl() {
-  return "https://docs.aws.amazon.com/general/latest/gr/rande.html";
-}
-function validateAwsRegion(region) {
-  if (!isValidAwsRegion(region)) {
-    throw new Error(
-      `Invalid AWS region: '${region}'. Please provide a valid AWS region (e.g., us-east-1, eu-west-1). For a complete list of available regions, see: ${getAwsRegionsDocUrl()}`
-    );
-  }
-}
-
-// src/utils/usage-assumptions.ts
-var fs = __toESM(require("fs"));
-var path = __toESM(require("path"));
-var core = __toESM(require_core());
-var github = __toESM(require_github());
-var USAGE_ASSUMPTIONS_PATH = ".cloudburn/usage-assumptions.json";
-var MAX_USAGE_ASSUMPTIONS_BYTES = 64 * 1024;
-var BLOCK_LABEL = "cloudburn-usage-assumptions";
-function fence(language, content) {
-  return `\`\`\`${language}
-${content}
-\`\`\``;
-}
-function errorFence(name, message) {
-  return fence(`${BLOCK_LABEL}-${name}-error`, JSON.stringify({ message }));
-}
-function toFencedBlock(name, snapshot) {
-  if (snapshot.status === "absent") {
-    return void 0;
-  }
-  if (snapshot.status === "unavailable") {
-    return errorFence(name, "Usage assumptions could not be read at the pull request base commit");
-  }
-  if (Buffer.byteLength(snapshot.content, "utf-8") > MAX_USAGE_ASSUMPTIONS_BYTES) {
-    core.warning(
-      `Skipping the ${name} usage assumptions: '${USAGE_ASSUMPTIONS_PATH}' exceeds ${MAX_USAGE_ASSUMPTIONS_BYTES} bytes.`
-    );
-    return errorFence(name, "Usage assumptions file exceeds the maximum allowed size");
-  }
-  try {
-    JSON.parse(snapshot.content);
-  } catch {
-    core.warning(`Skipping the ${name} usage assumptions: '${USAGE_ASSUMPTIONS_PATH}' is not valid JSON.`);
-    return errorFence(name, "Usage assumptions file is not valid JSON");
-  }
-  return fence(`${BLOCK_LABEL}-${name}`, snapshot.content.trim());
-}
-function renderUsageAssumptions({ current, previous }) {
-  if (current.status === "absent" && previous.status === "unavailable") {
-    return "";
-  }
-  const blocks = [toFencedBlock("current", current), toFencedBlock("previous", previous)].filter(
-    (block) => block !== void 0
-  );
-  if (blocks.length === 0) {
-    return "";
-  }
-  core.info(`Embedding ${blocks.length} usage assumptions block(s) in the comment`);
-  return `
-
-<details><summary><em>CloudBurn usage assumptions</em></summary>
-
-${blocks.join("\n\n")}
-
-</details>`;
-}
-async function readAtCommit(octokit, ref) {
-  try {
-    const { data } = await octokit.rest.repos.getContent({
-      owner: github.context.repo.owner,
-      repo: github.context.repo.repo,
-      path: USAGE_ASSUMPTIONS_PATH,
-      ref
-    });
-    if (Array.isArray(data) || data.type !== "file" || data.encoding !== "base64") {
-      core.warning(`'${USAGE_ASSUMPTIONS_PATH}' at commit ${ref} is not a readable file.`);
-      return { status: "unavailable" };
-    }
-    return { status: "found", content: Buffer.from(data.content, "base64").toString("utf-8") };
-  } catch (error52) {
-    if (error52.status === 404) {
-      core.info(`No '${USAGE_ASSUMPTIONS_PATH}' at commit ${ref}, treating the file as newly added`);
-      return { status: "absent" };
-    }
-    core.warning(
-      `Could not read '${USAGE_ASSUMPTIONS_PATH}' at commit ${ref}: ${error52 instanceof Error ? error52.message : String(error52)}`
-    );
-    return { status: "unavailable" };
-  }
-}
-async function readUsageAssumptions(options) {
-  const workspace = options.workspace ?? process.env.GITHUB_WORKSPACE ?? process.cwd();
-  const file2 = path.join(workspace, USAGE_ASSUMPTIONS_PATH);
-  if (!fs.existsSync(file2)) {
-    core.info(`No '${USAGE_ASSUMPTIONS_PATH}' in the workspace, skipping usage assumptions`);
-    return { current: { status: "absent" }, previous: { status: "absent" } };
-  }
-  core.info(`Reading usage assumptions from '${USAGE_ASSUMPTIONS_PATH}'`);
-  const current = { status: "found", content: fs.readFileSync(file2, "utf-8") };
-  const baseSha = options.baseSha ?? github.context.payload.pull_request?.base?.sha;
-  if (!baseSha) {
-    core.info("No pull request base commit available, embedding the current usage assumptions only");
-    return { current, previous: { status: "absent" } };
-  }
-  return { current, previous: await readAtCommit(options.octokit, baseSha) };
-}
-async function usageAssumptionsSection(options) {
-  return renderUsageAssumptions(await readUsageAssumptions(options));
-}
-
-// src/terraform/comment.ts
-var core4 = __toESM(require_core());
-var github2 = __toESM(require_github());
-
-// src/terraform/render.ts
-var core3 = __toESM(require_core());
-var exec = __toESM(require_exec());
-
-// src/terraform/planfile.ts
-var core2 = __toESM(require_core());
-var semver = __toESM(require_semver2());
+// src/resource-changes/contract.ts
+var import_node_crypto = require("crypto");
 
 // node_modules/.pnpm/zod@4.4.3/node_modules/zod/v4/classic/external.js
 var external_exports = {};
@@ -40645,7 +40450,1442 @@ function date4(params) {
 // node_modules/.pnpm/zod@4.4.3/node_modules/zod/v4/classic/external.js
 config(en_default());
 
+// src/utils/aws-regions.ts
+var VALID_AWS_REGIONS = [
+  // US Regions
+  "us-east-1",
+  // N. Virginia
+  "us-east-2",
+  // Ohio
+  "us-west-1",
+  // N. California
+  "us-west-2",
+  // Oregon
+  // Africa
+  "af-south-1",
+  // Cape Town
+  // Asia Pacific
+  "ap-east-1",
+  // Hong Kong
+  "ap-east-2",
+  // Taipei
+  "ap-south-1",
+  // Mumbai
+  "ap-south-2",
+  // Hyderabad
+  "ap-southeast-1",
+  // Singapore
+  "ap-southeast-2",
+  // Sydney
+  "ap-southeast-3",
+  // Jakarta
+  "ap-southeast-4",
+  // Melbourne
+  "ap-southeast-5",
+  // Malaysia
+  "ap-southeast-6",
+  // New Zealand
+  "ap-southeast-7",
+  // Thailand
+  "ap-northeast-1",
+  // Tokyo
+  "ap-northeast-2",
+  // Seoul
+  "ap-northeast-3",
+  // Osaka
+  // Canada
+  "ca-central-1",
+  // Canada (Central)
+  "ca-west-1",
+  // Canada West (Calgary)
+  // Mexico
+  "mx-central-1",
+  // Mexico (Central)
+  // Europe
+  "eu-central-1",
+  // Frankfurt
+  "eu-central-2",
+  // Zurich
+  "eu-west-1",
+  // Ireland
+  "eu-west-2",
+  // London
+  "eu-west-3",
+  // Paris
+  "eu-north-1",
+  // Stockholm
+  "eu-south-1",
+  // Milan
+  "eu-south-2",
+  // Spain
+  // Israel
+  "il-central-1",
+  // Tel Aviv
+  // Middle East
+  "me-central-1",
+  // UAE
+  "me-south-1",
+  // Bahrain
+  // South America
+  "sa-east-1"
+  // São Paulo
+];
+var CLOUDBURN_PRICING_REGIONS = VALID_AWS_REGIONS;
+function isValidAwsRegion(region) {
+  if (!region) {
+    return true;
+  }
+  return VALID_AWS_REGIONS.includes(region);
+}
+function getAwsRegionsDocUrl() {
+  return "https://docs.aws.amazon.com/global-infrastructure/latest/regions/aws-regions.html";
+}
+function validateAwsRegion(region) {
+  if (!isValidAwsRegion(region)) {
+    throw new Error(
+      `Invalid AWS region: '${region}'. Please provide a valid AWS region (e.g., us-east-1, eu-west-1). For a complete list of available regions, see: ${getAwsRegionsDocUrl()}`
+    );
+  }
+}
+
+// src/resource-changes/pricing-inputs.ts
+var TEMPLATE_PRICING_INPUTS = Object.freeze({
+  AccelerateConfiguration: "AccelerateConfiguration",
+  AllocatedStorage: "Storage",
+  Architectures: "Architectures",
+  AvailabilityZoneName: "AvailabilityZoneName",
+  Bandwidth: "Bandwidth",
+  BaseCapacity: "BaseCapacity",
+  BillingMode: "BillingMode",
+  BrokerInstanceType: "BrokerInstanceType",
+  BrokerStorageGiB: "BrokerStorageGiB",
+  CacheClusterEnabled: "CacheClusterEnabled",
+  CacheClusterSize: "CacheClusterSize",
+  CacheNodeType: "InstanceType",
+  CapacityProviderStrategies: "CapacityProviderStrategies",
+  CapacityProviderStrategy: "CapacityProviderStrategies",
+  ClientVpnEndpointId: "ClientVpnEndpointId",
+  ClusterType: "ClusterType",
+  ColdStorageEnabled: "ColdStorageEnabled",
+  ComputeType: "InstanceType",
+  ConnectionId: "ConnectionId",
+  ConsumerName: "ConsumerName",
+  Cpu: "Cpu",
+  CpuArchitecture: "CpuArchitecture",
+  CapacityStatus: "CapacityStatus",
+  CapacityType: "CapacityType",
+  DBClusterInstanceClass: "InstanceType",
+  DBInstanceClass: "InstanceType",
+  DataNodeCount: "DataNodeCount",
+  DataNodeInstanceType: "DataNodeInstanceType",
+  DbInstanceType: "InstanceType",
+  DedicatedMasterCount: "DedicatedMasterCount",
+  DedicatedMasterEnabled: "DedicatedMasterEnabled",
+  DedicatedMasterInstanceType: "DedicatedMasterInstanceType",
+  DesiredCount: "DesiredCount",
+  DesiredCapacity: "InstanceCount",
+  DesiredEC2Instances: "DesiredEC2Instances",
+  DefaultTargetCapacityType: "DefaultTargetCapacityType",
+  DeploymentType: "DeploymentType",
+  Direction: "Direction",
+  EbsEnabled: "EbsEnabled",
+  EbsIops: "EbsIops",
+  EbsThroughput: "EbsThroughput",
+  EbsVolumeSize: "EbsVolumeSize",
+  EbsVolumeType: "EbsVolumeType",
+  EC2InstanceType: "InstanceType",
+  Enabled: "Enabled",
+  Engine: "Engine",
+  EngineType: "EngineType",
+  EngineVersion: "EngineVersion",
+  EnvironmentType: "Type",
+  EphemeralStorageSize: "EphemeralStorageSize",
+  FifoQueue: "FifoQueue",
+  FifoTopic: "FifoTopic",
+  FileSystemId: "FileSystemId",
+  FileSystemType: "FileSystemType",
+  FleetType: "FleetType",
+  GlobalSecondaryIndexes: "GlobalSecondaryIndexes",
+  HostInstanceType: "InstanceType",
+  HAPairs: "HAPairs",
+  InstanceCount: "InstanceCount",
+  InstancePlatform: "InstancePlatform",
+  InstanceDefinitions: "InstanceDefinitions",
+  ImageId: "MachineImage",
+  InstanceType: "InstanceType",
+  InstanceTypeConfigs: "InstanceTypeConfigs",
+  InstanceTypeSpecifications: "InstanceTypeSpecifications",
+  InstanceTypes: "InstanceTypes",
+  Instances: "Instances",
+  Iops: "Iops",
+  IpAddressCount: "IpAddressCount",
+  LaunchType: "LaunchType",
+  LifecycleConfiguration: "LifecycleConfiguration",
+  LifecycleTransitionToArchive: "LifecycleTransitionToArchive",
+  LifecycleTransitionToIa: "LifecycleTransitionToIa",
+  LicenseModel: "LicenseModel",
+  Location: "Location",
+  LogGroupClass: "LogGroupClass",
+  Memory: "Memory",
+  MemorySize: "MemorySize",
+  MachineImage: "MachineImage",
+  MinSize: "MinSize",
+  MultiAZ: "MultiAz",
+  MultiAz: "MultiAz",
+  Monitoring: "Monitoring",
+  NodeType: "InstanceType",
+  NumberOfBrokerNodes: "NumberOfBrokerNodes",
+  NumberOfNodes: "InstanceCount",
+  NumCacheClusters: "InstanceCount",
+  NumCacheNodes: "InstanceCount",
+  NumNodeGroups: "NumNodeGroups",
+  NumReplicasPerShard: "NumReplicasPerShard",
+  NumShards: "NumShards",
+  OneZone: "OneZone",
+  OperatingSystemFamily: "OperatingSystemFamily",
+  OperatingSystem: "OperatingSystem",
+  OnDemandTargetCapacity: "OnDemandTargetCapacity",
+  PlatformVersion: "PlatformVersion",
+  PerUnitStorageThroughput: "PerUnitStorageThroughput",
+  PreInstalledSoftware: "PreInstalledSoftware",
+  PriceClass: "PriceClass",
+  ProductName: "ProductName",
+  ProvisionedConcurrentExecutions: "ProvisionedConcurrentExecutions",
+  ProvisionedThroughputEnabled: "ProvisionedThroughputEnabled",
+  Protocols: "Protocols",
+  ProtocolType: "ProtocolType",
+  ReplicationConfiguration: "ReplicationConfiguration",
+  ReplicationFactor: "ReplicationFactor",
+  ReplicationInstanceClass: "InstanceType",
+  SourceFileSystemId: "FileSystemId",
+  RequiresCompatibilities: "RequiresCompatibilities",
+  RetentionInDays: "RetentionInDays",
+  RetentionPeriodHours: "RetentionPeriodHours",
+  ShardCount: "ShardCount",
+  Size: "Size",
+  ScalingConfig: "ScalingConfig",
+  ScalingConfiguration: "ScalingConfiguration",
+  SnapStart: "SnapStart",
+  SpotTargetCapacity: "SpotTargetCapacity",
+  Storage: "Storage",
+  StorageCapacity: "StorageCapacity",
+  StorageThroughput: "Throughput",
+  StorageType: "VolumeType",
+  StreamARN: "StreamArn",
+  StreamArn: "StreamArn",
+  StreamMode: "StreamMode",
+  SubnetId: "SubnetId",
+  TableClass: "TableClass",
+  TableReadCapacityUnits: "TableReadCapacityUnits",
+  TableWriteCapacityUnits: "TableWriteCapacityUnits",
+  TargetOnDemandCapacity: "TargetOnDemandCapacity",
+  TargetSpotCapacity: "TargetSpotCapacity",
+  TaskDefinition: "TaskDefinition",
+  Throughput: "Throughput",
+  ThroughputCapacity: "ThroughputCapacity",
+  ProvisionedThroughputInMibps: "Throughput",
+  ThroughputMode: "ThroughputMode",
+  TotalTargetCapacity: "TotalTargetCapacity",
+  TrackingServerSize: "TrackingServerSize",
+  Type: "Type",
+  Version: "Version",
+  VolumeThroughput: "VolumeThroughput",
+  VolumeType: "VolumeType",
+  VpcEndpointType: "VpcEndpointType",
+  WarmCount: "WarmCount",
+  WarmEnabled: "WarmEnabled",
+  WarmInstanceType: "WarmInstanceType",
+  NumberOfInstances: "NumberOfInstances",
+  InitialInstanceCount: "InitialInstanceCount",
+  DeploymentMode: "DeploymentMode",
+  EndpointCount: "EndpointCount",
+  SubnetIds: "SubnetIds",
+  SupportType: "SupportType",
+  Tenancy: "Tenancy",
+  NodeConfiguration: "NodeConfiguration",
+  ReplicasPerNodeGroup: "ReplicasPerNodeGroup"
+});
+var TERRAFORM_COMMON_PRICING_INPUTS = Object.freeze({
+  accelerate_configuration: "AccelerateConfiguration",
+  allocated_storage: "Storage",
+  architectures: "Architectures",
+  availability_zone_name: "AvailabilityZoneName",
+  bandwidth: "Bandwidth",
+  base_capacity: "BaseCapacity",
+  billing_mode: "BillingMode",
+  broker_instance_type: "BrokerInstanceType",
+  broker_storage_gib: "BrokerStorageGiB",
+  cache_cluster_enabled: "CacheClusterEnabled",
+  cache_cluster_size: "CacheClusterSize",
+  cache_node_type: "InstanceType",
+  capacity_provider_strategy: "CapacityProviderStrategies",
+  client_vpn_endpoint_id: "ClientVpnEndpointId",
+  cluster_type: "ClusterType",
+  cold_storage_enabled: "ColdStorageEnabled",
+  compute_type: "InstanceType",
+  connection_id: "ConnectionId",
+  consumer_name: "ConsumerName",
+  cpu: "Cpu",
+  cpu_architecture: "CpuArchitecture",
+  capacity_status: "CapacityStatus",
+  capacity_type: "CapacityType",
+  instance_class: "InstanceType",
+  data_node_count: "DataNodeCount",
+  data_node_instance_type: "DataNodeInstanceType",
+  dedicated_master_count: "DedicatedMasterCount",
+  dedicated_master_enabled: "DedicatedMasterEnabled",
+  dedicated_master_instance_type: "DedicatedMasterInstanceType",
+  desired_count: "DesiredCount",
+  desired_capacity: "InstanceCount",
+  desired_ec2_instances: "DesiredEC2Instances",
+  default_target_capacity_type: "DefaultTargetCapacityType",
+  deployment_type: "DeploymentType",
+  direction: "Direction",
+  ebs_enabled: "EbsEnabled",
+  ebs_iops: "EbsIops",
+  ebs_throughput: "EbsThroughput",
+  ebs_volume_size: "EbsVolumeSize",
+  ebs_volume_type: "EbsVolumeType",
+  enabled: "Enabled",
+  engine: "Engine",
+  engine_type: "EngineType",
+  engine_version: "EngineVersion",
+  environment_type: "Type",
+  ephemeral_storage_size: "EphemeralStorageSize",
+  fifo_queue: "FifoQueue",
+  fifo_topic: "FifoTopic",
+  file_system_id: "FileSystemId",
+  file_system_type: "FileSystemType",
+  fleet_type: "FleetType",
+  global_secondary_indexes: "GlobalSecondaryIndexes",
+  host_instance_type: "InstanceType",
+  ha_pairs: "HAPairs",
+  instance_count: "InstanceCount",
+  instance_platform: "InstancePlatform",
+  instance_definitions: "InstanceDefinitions",
+  instance_type: "InstanceType",
+  instance_type_configs: "InstanceTypeConfigs",
+  instance_type_specifications: "InstanceTypeSpecifications",
+  instance_types: "InstanceTypes",
+  instances: "Instances",
+  ami: "MachineImage",
+  iops: "Iops",
+  ip_address_count: "IpAddressCount",
+  launch_type: "LaunchType",
+  lifecycle_configuration: "LifecycleConfiguration",
+  license_model: "LicenseModel",
+  location: "Location",
+  log_group_class: "LogGroupClass",
+  memory: "Memory",
+  memory_size: "MemorySize",
+  machine_image: "MachineImage",
+  min_size: "MinSize",
+  multi_az: "MultiAz",
+  monitoring: "Monitoring",
+  node_type: "InstanceType",
+  number_of_broker_nodes: "NumberOfBrokerNodes",
+  number_of_nodes: "InstanceCount",
+  num_cache_clusters: "InstanceCount",
+  num_cache_nodes: "InstanceCount",
+  num_node_groups: "NumNodeGroups",
+  num_replicas_per_shard: "NumReplicasPerShard",
+  num_shards: "NumShards",
+  one_zone: "OneZone",
+  operating_system_family: "OperatingSystemFamily",
+  operating_system: "OperatingSystem",
+  on_demand_target_capacity: "OnDemandTargetCapacity",
+  platform_version: "PlatformVersion",
+  per_unit_storage_throughput: "PerUnitStorageThroughput",
+  pre_installed_software: "PreInstalledSoftware",
+  price_class: "PriceClass",
+  product_name: "ProductName",
+  provisioned_concurrent_executions: "ProvisionedConcurrentExecutions",
+  provisioned_throughput_enabled: "ProvisionedThroughputEnabled",
+  protocols: "Protocols",
+  protocol_type: "ProtocolType",
+  replication_configuration: "ReplicationConfiguration",
+  replication_factor: "ReplicationFactor",
+  replication_instance_class: "InstanceType",
+  source_file_system_id: "FileSystemId",
+  requires_compatibilities: "RequiresCompatibilities",
+  retention_in_days: "RetentionInDays",
+  retention_period_hours: "RetentionPeriodHours",
+  shard_count: "ShardCount",
+  size: "Size",
+  scaling_config: "ScalingConfig",
+  scaling_configuration: "ScalingConfiguration",
+  snap_start: "SnapStart",
+  spot_target_capacity: "SpotTargetCapacity",
+  storage: "Storage",
+  storage_capacity: "StorageCapacity",
+  storage_throughput: "Throughput",
+  storage_type: "VolumeType",
+  stream_arn: "StreamArn",
+  stream_mode: "StreamMode",
+  subnet_id: "SubnetId",
+  table_class: "TableClass",
+  table_read_capacity_units: "TableReadCapacityUnits",
+  table_write_capacity_units: "TableWriteCapacityUnits",
+  target_on_demand_capacity: "TargetOnDemandCapacity",
+  target_spot_capacity: "TargetSpotCapacity",
+  task_definition: "TaskDefinition",
+  throughput: "Throughput",
+  throughput_capacity: "ThroughputCapacity",
+  provisioned_throughput_in_mibps: "Throughput",
+  throughput_mode: "ThroughputMode",
+  total_target_capacity: "TotalTargetCapacity",
+  tracking_server_size: "TrackingServerSize",
+  version: "Version",
+  volume_throughput: "VolumeThroughput",
+  vpc_endpoint_type: "VpcEndpointType",
+  warm_count: "WarmCount",
+  warm_enabled: "WarmEnabled",
+  warm_instance_type: "WarmInstanceType",
+  number_of_instances: "NumberOfInstances",
+  initial_instance_count: "InitialInstanceCount",
+  deployment_mode: "DeploymentMode",
+  endpoint_count: "EndpointCount",
+  subnet_ids: "SubnetIds",
+  support_type: "SupportType",
+  tenancy: "Tenancy",
+  node_configuration: "NodeConfiguration",
+  replicas_per_node_group: "ReplicasPerNodeGroup"
+});
+var TERRAFORM_RESOURCE_PRICING_INPUTS = Object.freeze({
+  aws_ebs_volume: { type: "VolumeType" },
+  aws_lb: { load_balancer_type: "Type" },
+  aws_vpn_connection: { type: "Type" }
+});
+var SPECIALIZED_PRICING_INPUT_NAMES = [
+  "Bucket",
+  "MarketType",
+  "IntelligentTieringConfigurations",
+  "MemorySizeInMB",
+  "MaxConcurrency",
+  "ProvisionedConcurrency",
+  "ResourceSpec"
+];
+var RESOURCE_CHANGE_PRICING_INPUT_NAMES = /* @__PURE__ */ new Set([
+  ...Object.values(TEMPLATE_PRICING_INPUTS),
+  ...Object.values(TERRAFORM_COMMON_PRICING_INPUTS),
+  ...Object.values(TERRAFORM_RESOURCE_PRICING_INPUTS).flatMap((aliases) => Object.values(aliases)),
+  ...SPECIALIZED_PRICING_INPUT_NAMES
+]);
+var TYPE_ONLY_TEMPLATE_PRICING_RESOURCES = /* @__PURE__ */ new Set([
+  "AWS::S3::Bucket",
+  "AWS::SQS::Queue",
+  "AWS::SNS::Topic",
+  "AWS::Logs::LogGroup",
+  "AWS::EFS::FileSystem",
+  "AWS::Lambda::Function",
+  "AWS::ApiGateway::RestApi",
+  "AWS::EC2::NatGateway",
+  "AWS::EC2::VPNConnection",
+  "AWS::GlobalAccelerator::Accelerator",
+  "AWS::ElasticLoadBalancingV2::LoadBalancer",
+  "AWS::ElasticLoadBalancing::LoadBalancer",
+  "AWS::EC2::VPCEndpoint",
+  "AWS::EC2::TransitGatewayAttachment",
+  "AWS::EC2::TransitGatewayVpcAttachment",
+  "AWS::EC2::EIP",
+  "AWS::KMS::Key",
+  "AWS::SecretsManager::Secret",
+  "AWS::Route53::HostedZone"
+]);
+var TYPE_ONLY_TERRAFORM_PRICING_RESOURCES = /* @__PURE__ */ new Set([
+  "aws_s3_bucket",
+  "aws_s3_directory_bucket",
+  "aws_sqs_queue",
+  "aws_sns_topic",
+  "aws_cloudwatch_log_group",
+  "aws_efs_file_system",
+  "aws_lambda_function",
+  "aws_api_gateway_rest_api",
+  "aws_nat_gateway",
+  "aws_vpn_connection",
+  "aws_globalaccelerator_accelerator",
+  "aws_lb",
+  "aws_elb",
+  "aws_vpc_endpoint",
+  "aws_ec2_transit_gateway_vpc_attachment",
+  "aws_eip",
+  "aws_kms_key",
+  "aws_secretsmanager_secret",
+  "aws_route53_zone"
+]);
+function supportsTypeOnlyPricing(resourceType) {
+  return TYPE_ONLY_TEMPLATE_PRICING_RESOURCES.has(resourceType) || TYPE_ONLY_TERRAFORM_PRICING_RESOURCES.has(resourceType);
+}
+var UNRESOLVED_TEMPLATE_PRICING_INPUT = Object.freeze({ Ref: "CloudBurn::UnresolvedPricingInput" });
+var OPEN_SEARCH_CLUSTER_PRICING_INPUTS = [
+  "DataNodeInstanceType",
+  "DataNodeCount",
+  "DedicatedMasterEnabled",
+  "DedicatedMasterInstanceType",
+  "DedicatedMasterCount",
+  "WarmEnabled",
+  "WarmInstanceType",
+  "WarmCount",
+  "ColdStorageEnabled"
+];
+var OPEN_SEARCH_EBS_PRICING_INPUTS = [
+  "EbsEnabled",
+  "EbsVolumeType",
+  "EbsVolumeSize",
+  "EbsIops",
+  "EbsThroughput"
+];
+var TEMPLATE_NESTED_PRICING_BLOCKS = Object.freeze({
+  "AWS::EC2::Instance": {
+    Placement: ["Tenancy"],
+    InstanceMarketOptions: ["MarketType"]
+  },
+  "AWS::EC2::EC2Fleet": {
+    TargetCapacitySpecification: [
+      "TotalTargetCapacity",
+      "OnDemandTargetCapacity",
+      "SpotTargetCapacity",
+      "DefaultTargetCapacityType"
+    ]
+  },
+  "AWS::MSK::Cluster": {
+    BrokerNodeGroupInfo: [
+      "BrokerInstanceType",
+      "BrokerStorageGiB",
+      "ProvisionedThroughputEnabled",
+      "VolumeThroughput"
+    ]
+  },
+  "AWS::OpenSearchService::Domain": {
+    ClusterConfig: OPEN_SEARCH_CLUSTER_PRICING_INPUTS,
+    EBSOptions: OPEN_SEARCH_EBS_PRICING_INPUTS,
+    ColdStorageOptions: ["ColdStorageEnabled"]
+  },
+  "AWS::Elasticsearch::Domain": {
+    ClusterConfig: OPEN_SEARCH_CLUSTER_PRICING_INPUTS,
+    EBSOptions: OPEN_SEARCH_EBS_PRICING_INPUTS,
+    ColdStorageOptions: ["ColdStorageEnabled"]
+  },
+  "AWS::DynamoDB::Table": {
+    ProvisionedThroughput: ["TableReadCapacityUnits", "TableWriteCapacityUnits"]
+  },
+  "AWS::Kinesis::Stream": { StreamModeDetails: ["StreamMode"] },
+  "AWS::Route53Resolver::ResolverEndpoint": { IpAddresses: ["IpAddressCount"] },
+  "AWS::Lambda::Function": { EphemeralStorage: ["EphemeralStorageSize"] },
+  "AWS::Lambda::Alias": { ProvisionedConcurrencyConfig: ["ProvisionedConcurrentExecutions"] },
+  "AWS::Lambda::Version": { ProvisionedConcurrencyConfig: ["ProvisionedConcurrentExecutions"] },
+  "AWS::EFS::FileSystem": {
+    LifecyclePolicies: ["LifecycleTransitionToIa", "LifecycleTransitionToArchive"]
+  },
+  "AWS::ECS::TaskDefinition": {
+    RuntimePlatform: ["CpuArchitecture", "OperatingSystemFamily"],
+    EphemeralStorage: ["EphemeralStorageSize"]
+  },
+  "AWS::EKS::Cluster": { UpgradePolicy: ["SupportType"] },
+  "AWS::CodeBuild::Project": { Environment: ["InstanceType", "Type"] },
+  "AWS::AppStream::Fleet": { ComputeCapacity: ["InstanceCount"] },
+  "AWS::SageMaker::EndpointConfig": {
+    ProductionVariants: [
+      "InstanceType",
+      "InitialInstanceCount",
+      "MemorySizeInMB",
+      "MaxConcurrency",
+      "ProvisionedConcurrency"
+    ]
+  },
+  "AWS::AppRunner::Service": { InstanceConfiguration: ["Cpu", "Memory"] },
+  "AWS::RDS::DBCluster": { ServerlessV2ScalingConfiguration: ["ScalingConfiguration"] },
+  "AWS::NetworkFirewall::Firewall": { SubnetMappings: ["EndpointCount"] },
+  "AWS::FSx::FileSystem": {
+    WindowsConfiguration: ["ThroughputCapacity", "DeploymentType", "Iops"],
+    LustreConfiguration: ["PerUnitStorageThroughput", "DeploymentType"],
+    OntapConfiguration: ["ThroughputCapacity", "DeploymentType", "HAPairs", "Iops"],
+    OpenZFSConfiguration: ["ThroughputCapacity", "DeploymentType", "Iops"]
+  },
+  "AWS::Neptune::DBCluster": { ServerlessScalingConfiguration: ["ScalingConfiguration"] }
+});
+var OPEN_SEARCH_CLUSTER_FIELDS = Object.entries({
+  InstanceType: "DataNodeInstanceType",
+  instance_type: "DataNodeInstanceType",
+  InstanceCount: "DataNodeCount",
+  instance_count: "DataNodeCount",
+  DedicatedMasterEnabled: "DedicatedMasterEnabled",
+  dedicated_master_enabled: "DedicatedMasterEnabled",
+  DedicatedMasterType: "DedicatedMasterInstanceType",
+  dedicated_master_type: "DedicatedMasterInstanceType",
+  DedicatedMasterCount: "DedicatedMasterCount",
+  dedicated_master_count: "DedicatedMasterCount",
+  WarmEnabled: "WarmEnabled",
+  warm_enabled: "WarmEnabled",
+  WarmType: "WarmInstanceType",
+  warm_type: "WarmInstanceType",
+  WarmCount: "WarmCount",
+  warm_count: "WarmCount"
+});
+var OPEN_SEARCH_EBS_FIELDS = Object.entries({
+  EBSEnabled: "EbsEnabled",
+  ebs_enabled: "EbsEnabled",
+  VolumeType: "EbsVolumeType",
+  volume_type: "EbsVolumeType",
+  VolumeSize: "EbsVolumeSize",
+  volume_size: "EbsVolumeSize",
+  Iops: "EbsIops",
+  iops: "EbsIops",
+  Throughput: "EbsThroughput",
+  throughput: "EbsThroughput"
+});
+function record2(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : void 0;
+}
+function containsUnresolvedTemplateExpression(value) {
+  if (typeof value === "string") return value.includes("{{resolve:");
+  if (Array.isArray(value)) return value.some(containsUnresolvedTemplateExpression);
+  if (!value || typeof value !== "object") return false;
+  return Object.entries(value).some(
+    ([key, nested]) => key === "Ref" || key.startsWith("Fn::") || containsUnresolvedTemplateExpression(nested)
+  );
+}
+function firstRecord(value) {
+  return Array.isArray(value) ? record2(value[0]) : record2(value);
+}
+function setProjection(projections, name, source, value, sourcePath = [source]) {
+  if (value !== void 0) projections.set(name, { source, sourcePath, value });
+}
+function projectOpenSearch(projections, clusterConfigValue, ebsOptionsValue, coldStorageValue, sourceNames, sourcePaths = {
+  cluster: [sourceNames.cluster],
+  ebs: [sourceNames.ebs],
+  cold: [sourceNames.cold]
+}) {
+  const cluster = firstRecord(clusterConfigValue);
+  const ebs = firstRecord(ebsOptionsValue);
+  const cold = firstRecord(coldStorageValue);
+  if (cluster) {
+    for (const [source, name] of OPEN_SEARCH_CLUSTER_FIELDS) {
+      setProjection(projections, name, sourceNames.cluster, cluster[source], [...sourcePaths.cluster, source]);
+    }
+  }
+  if (ebs) {
+    for (const [source, name] of OPEN_SEARCH_EBS_FIELDS) {
+      setProjection(projections, name, sourceNames.ebs, ebs[source], [...sourcePaths.ebs, source]);
+    }
+  }
+  if (cold) {
+    const enabledKey = cold.Enabled === void 0 ? "enabled" : "Enabled";
+    setProjection(projections, "ColdStorageEnabled", sourceNames.cold, cold[enabledKey], [
+      ...sourcePaths.cold,
+      enabledKey
+    ]);
+  }
+}
+function projectDynamoDbIndexes(value) {
+  if (!Array.isArray(value)) return void 0;
+  return value.map((entry) => {
+    if (containsUnresolvedTemplateExpression(entry)) return UNRESOLVED_TEMPLATE_PRICING_INPUT;
+    const index = record2(entry) ?? {};
+    const throughput = firstRecord(index.ProvisionedThroughput) ?? {};
+    return Object.fromEntries(
+      Object.entries({
+        IndexName: index.IndexName ?? index.name,
+        ReadCapacityUnits: throughput.ReadCapacityUnits ?? index.read_capacity,
+        WriteCapacityUnits: throughput.WriteCapacityUnits ?? index.write_capacity
+      }).filter(([, fieldValue]) => fieldValue !== void 0)
+    );
+  });
+}
+function projectCanonicalRecords(value, aliases) {
+  if (!Array.isArray(value)) return void 0;
+  return value.map((entry) => {
+    if (containsUnresolvedTemplateExpression(entry)) return UNRESOLVED_TEMPLATE_PRICING_INPUT;
+    const source = record2(entry) ?? {};
+    return Object.fromEntries(
+      Object.entries(source).map(([key, fieldValue]) => [aliases[key], fieldValue]).filter(([key, fieldValue]) => key !== void 0 && fieldValue !== void 0)
+    );
+  });
+}
+function projectLifecyclePolicies(projections, value, source) {
+  if (!Array.isArray(value)) return;
+  for (const [index, policyValue] of value.entries()) {
+    const policy = record2(policyValue);
+    if (!policy) continue;
+    const iaKey = policy.TransitionToIA === void 0 ? "transition_to_ia" : "TransitionToIA";
+    const archiveKey = policy.TransitionToArchive === void 0 ? "transition_to_archive" : "TransitionToArchive";
+    setProjection(projections, "LifecycleTransitionToIa", source, policy[iaKey], [source, index, iaKey]);
+    setProjection(projections, "LifecycleTransitionToArchive", source, policy[archiveKey], [source, index, archiveKey]);
+  }
+}
+function projectSageMakerProductionVariant(projections, value, source) {
+  if (!Array.isArray(value) || value.length !== 1) return;
+  const variant = record2(value[0]);
+  if (!variant) return;
+  const instanceTypeKey = variant.InstanceType === void 0 ? "instance_type" : "InstanceType";
+  const instanceCountKey = variant.InitialInstanceCount === void 0 ? "initial_instance_count" : "InitialInstanceCount";
+  setProjection(projections, "InstanceType", source, variant[instanceTypeKey], [source, 0, instanceTypeKey]);
+  setProjection(projections, "InitialInstanceCount", source, variant[instanceCountKey], [source, 0, instanceCountKey]);
+  const serverlessKey = variant.ServerlessConfig === void 0 ? "serverless_config" : "ServerlessConfig";
+  const serverless = firstRecord(variant[serverlessKey]);
+  if (!serverless) return;
+  for (const [canonical, terraform] of [
+    ["MemorySizeInMB", "memory_size_in_mb"],
+    ["MaxConcurrency", "max_concurrency"],
+    ["ProvisionedConcurrency", "provisioned_concurrency"]
+  ]) {
+    const key = serverless[canonical] === void 0 ? terraform : canonical;
+    setProjection(projections, canonical, source, serverless[key], [source, 0, serverlessKey, 0, key]);
+  }
+}
+function projectS3IntelligentTieringConfigurations(value, singleConfiguration = false) {
+  const configurations = singleConfiguration ? [value] : Array.isArray(value) ? value : void 0;
+  if (!configurations) return void 0;
+  return configurations.map((configurationValue) => {
+    if (containsUnresolvedTemplateExpression(configurationValue)) return UNRESOLVED_TEMPLATE_PRICING_INPUT;
+    const configuration = record2(configurationValue) ?? {};
+    const tieringsValue = configuration.Tierings ?? configuration.tiering;
+    const tierings = containsUnresolvedTemplateExpression(tieringsValue) ? tieringsValue : projectCanonicalRecords(tieringsValue, {
+      AccessTier: "AccessTier",
+      access_tier: "AccessTier",
+      Days: "Days",
+      days: "Days"
+    });
+    return Object.fromEntries(
+      Object.entries({
+        Status: configuration.Status ?? configuration.status,
+        Tierings: tierings
+      }).filter(([, fieldValue]) => fieldValue !== void 0)
+    );
+  });
+}
+function projectEksScalingConfig(projections, value) {
+  const scaling = firstRecord(value);
+  if (!scaling) return;
+  const canonical = Object.fromEntries(
+    Object.entries({
+      DesiredSize: scaling.desired_size,
+      MinSize: scaling.min_size,
+      MaxSize: scaling.max_size
+    }).filter(([, field]) => field !== void 0)
+  );
+  if (Object.keys(canonical).length > 0) {
+    setProjection(projections, "ScalingConfig", "scaling_config", canonical, ["scaling_config"]);
+  }
+}
+var UNSUPPORTED_PRICE_DRIVER_FIELDS = Object.freeze({
+  "AWS::OpenSearchServerless::Collection": ["StandbyReplicas"],
+  aws_opensearchserverless_collection: ["standby_replicas"],
+  "AWS::EC2::Instance": ["CpuOptions"],
+  aws_instance: ["cpu_options"],
+  "AWS::S3::Bucket": ["BucketEncryption", "LifecycleConfiguration", "ReplicationConfiguration"],
+  aws_s3_bucket: ["server_side_encryption_configuration", "lifecycle_rule", "replication_configuration"],
+  aws_s3_bucket_lifecycle_configuration: ["rule"],
+  aws_s3_bucket_replication_configuration: ["rule"],
+  "AWS::RDS::DBInstance": ["DatabaseInsightsMode", "PerformanceInsightsRetentionPeriod"],
+  aws_db_instance: ["database_insights_mode", "performance_insights_retention_period"],
+  "AWS::DynamoDB::GlobalTable": ["Replicas"],
+  aws_dynamodb_table: ["replica"],
+  "AWS::EKS::Nodegroup": ["LaunchTemplate", "DiskSize", "AmiType"],
+  aws_eks_node_group: ["launch_template", "disk_size", "ami_type"],
+  "AWS::ACMPCA::CertificateAuthority": ["UsageMode"],
+  aws_acmpca_certificate_authority: ["usage_mode"],
+  "AWS::EMR::Cluster": ["EbsRootVolumeSize", "EbsRootVolumeIops", "EbsRootVolumeThroughput"],
+  aws_emr_cluster: ["ebs_root_volume_size"],
+  "AWS::S3Express::DirectoryBucket": ["DataRedundancy", "LocationName"],
+  aws_s3_directory_bucket: ["data_redundancy", "location"],
+  "AWS::ECS::Service": ["VolumeConfigurations"],
+  aws_ecs_service: ["volume_configuration"],
+  "AWS::GameLift::Fleet": ["Locations"],
+  "AWS::ElastiCache::ReplicationGroup": ["NodeGroupConfiguration"],
+  aws_elasticache_replication_group: ["node_group_configuration"],
+  "AWS::SNS::Topic": ["ArchivePolicy"],
+  aws_sns_topic: ["archive_policy"],
+  "AWS::MediaConvert::Queue": ["PricingPlan", "ReservationPlanSettings"],
+  aws_media_convert_queue: ["pricing_plan", "reservation_plan_settings"],
+  "AWS::DocDBElastic::Cluster": ["ShardCapacity"],
+  aws_docdbelastic_cluster: ["shard_capacity"],
+  "AWS::SageMaker::NotebookInstance": ["VolumeSizeInGB"],
+  aws_sagemaker_notebook_instance: ["volume_size"],
+  "AWS::EC2::Host": ["InstanceFamily"],
+  aws_ec2_host: ["instance_family"],
+  "AWS::QBusiness::Index": ["CapacityConfiguration"],
+  aws_qbusiness_index: ["capacity_configuration"],
+  "AWS::EMRServerless::Application": ["InitialCapacity"],
+  aws_emrserverless_application: ["initial_capacity"],
+  "AWS::EC2::VPNConnection": ["EnableAcceleration"],
+  aws_vpn_connection: ["enable_acceleration"],
+  "AWS::SecretsManager::Secret": ["ReplicaRegions"],
+  aws_secretsmanager_secret: ["replica"],
+  "AWS::ElasticLoadBalancingV2::LoadBalancer": ["MinimumLoadBalancerCapacity", "Scheme", "IpAddressType"],
+  aws_lb: ["minimum_load_balancer_capacity", "internal", "ip_address_type"],
+  "AWS::Batch::ComputeEnvironment": ["ComputeResources"],
+  aws_batch_compute_environment: ["compute_resources"],
+  "AWS::KMS::Key": ["KeySpec", "KeyUsage"],
+  aws_kms_key: ["customer_master_key_spec", "key_usage"],
+  "AWS::Route53::HostedZone": ["VPCs"],
+  aws_route53_zone: ["vpc"]
+});
+function hasUnsupportedPricingTopology(resourceType, values) {
+  const variants = resourceType === "AWS::SageMaker::EndpointConfig" ? values.ProductionVariants : resourceType === "aws_sagemaker_endpoint_configuration" ? values.production_variants : void 0;
+  if (Array.isArray(variants) && variants.length > 1) return true;
+  if (resourceType === "AWS::EC2::EC2Fleet") return values.LaunchTemplateConfigs !== void 0;
+  if (resourceType === "aws_ec2_fleet") return values.launch_template_config !== void 0;
+  const hasTopology = (value) => {
+    if (Array.isArray(value)) return value.length > 0;
+    const object2 = record2(value);
+    return object2 ? Object.keys(object2).length > 0 : value !== void 0 && value !== null;
+  };
+  if ((UNSUPPORTED_PRICE_DRIVER_FIELDS[resourceType] ?? []).some((field) => hasTopology(values[field]))) return true;
+  if (resourceType === "AWS::EC2::Instance") return hasTopology(values.BlockDeviceMappings);
+  if (resourceType === "aws_instance") {
+    return hasTopology(values.root_block_device) || hasTopology(values.ebs_block_device);
+  }
+  if (resourceType === "AWS::AutoScaling::AutoScalingGroup") {
+    return [values.LaunchTemplate, values.MixedInstancesPolicy, values.LaunchConfigurationName].some(hasTopology);
+  }
+  if (resourceType === "aws_autoscaling_group") {
+    return [values.launch_template, values.mixed_instances_policy, values.launch_configuration].some(hasTopology);
+  }
+  return false;
+}
+function projectSageMakerResourceSpec(value) {
+  const specification = firstRecord(value);
+  if (!specification) return void 0;
+  const instanceType = specification.InstanceType ?? specification.instance_type;
+  return instanceType === void 0 ? void 0 : { InstanceType: instanceType };
+}
+function projectAppRunnerInstanceConfiguration(projections, value, source, sourcePath) {
+  const configuration = firstRecord(value);
+  if (!configuration) return;
+  const cpuKey = configuration.Cpu === void 0 ? "cpu" : "Cpu";
+  const memoryKey = configuration.Memory === void 0 ? "memory" : "Memory";
+  setProjection(projections, "Cpu", source, configuration[cpuKey], [...sourcePath, cpuKey]);
+  setProjection(projections, "Memory", source, configuration[memoryKey], [...sourcePath, memoryKey]);
+}
+function projectServerlessScalingConfiguration(projections, value, source, sourcePath) {
+  const configuration = firstRecord(value);
+  if (!configuration) return;
+  const minCapacity = configuration.MinCapacity ?? configuration.min_capacity;
+  const maxCapacity = configuration.MaxCapacity ?? configuration.max_capacity;
+  const canonical = Object.fromEntries(
+    Object.entries({ MinCapacity: minCapacity, MaxCapacity: maxCapacity }).filter(([, field]) => field !== void 0)
+  );
+  if (Object.keys(canonical).length > 0) {
+    setProjection(projections, "ScalingConfiguration", source, canonical, sourcePath);
+  }
+}
+function projectEc2FleetTargetCapacity(projections, value, source, sourcePath) {
+  const specification = firstRecord(value);
+  if (!specification) return;
+  for (const [canonical, terraform] of [
+    ["TotalTargetCapacity", "total_target_capacity"],
+    ["OnDemandTargetCapacity", "on_demand_target_capacity"],
+    ["SpotTargetCapacity", "spot_target_capacity"],
+    ["DefaultTargetCapacityType", "default_target_capacity_type"]
+  ]) {
+    const key = specification[canonical] === void 0 ? terraform : canonical;
+    setProjection(projections, canonical, source, specification[key], [...sourcePath, key]);
+  }
+}
+function supportsTerraformProjection(resourceType) {
+  return resourceType.startsWith("aws_");
+}
+function projectTerraformPricingInputs(resourceType, values) {
+  if (!supportsTerraformProjection(resourceType)) return [];
+  const resourceAliases = TERRAFORM_RESOURCE_PRICING_INPUTS[resourceType];
+  const projections = /* @__PURE__ */ new Map();
+  for (const [source, value] of Object.entries(values)) {
+    const name = resourceAliases?.[source] ?? TERRAFORM_COMMON_PRICING_INPUTS[source];
+    if (name) setProjection(projections, name, source, value);
+  }
+  if ([
+    "aws_s3_bucket_accelerate_configuration",
+    "aws_s3_bucket_intelligent_tiering_configuration",
+    "aws_s3_bucket_lifecycle_configuration",
+    "aws_s3_bucket_replication_configuration"
+  ].includes(resourceType)) {
+    setProjection(projections, "Bucket", "bucket", values.bucket);
+  }
+  if (resourceType === "aws_msk_cluster") {
+    const broker = firstRecord(values.broker_node_group_info);
+    const storageInfo = firstRecord(broker?.storage_info);
+    const ebsStorage = firstRecord(storageInfo?.ebs_storage_info);
+    const provisionedThroughput = firstRecord(ebsStorage?.provisioned_throughput);
+    setProjection(projections, "BrokerInstanceType", "broker_node_group_info", broker?.instance_type, [
+      "broker_node_group_info",
+      0,
+      "instance_type"
+    ]);
+    setProjection(projections, "BrokerStorageGiB", "broker_node_group_info", ebsStorage?.volume_size, [
+      "broker_node_group_info",
+      0,
+      "storage_info",
+      0,
+      "ebs_storage_info",
+      0,
+      "volume_size"
+    ]);
+    setProjection(
+      projections,
+      "ProvisionedThroughputEnabled",
+      "broker_node_group_info",
+      provisionedThroughput?.enabled,
+      ["broker_node_group_info", 0, "storage_info", 0, "ebs_storage_info", 0, "provisioned_throughput", 0, "enabled"]
+    );
+    setProjection(projections, "VolumeThroughput", "broker_node_group_info", provisionedThroughput?.volume_throughput, [
+      "broker_node_group_info",
+      0,
+      "storage_info",
+      0,
+      "ebs_storage_info",
+      0,
+      "provisioned_throughput",
+      0,
+      "volume_throughput"
+    ]);
+  }
+  if (resourceType === "aws_instance") {
+    setProjection(
+      projections,
+      "MarketType",
+      "instance_market_options",
+      firstRecord(values.instance_market_options)?.market_type,
+      ["instance_market_options", 0, "market_type"]
+    );
+  }
+  if (resourceType === "aws_s3_bucket_intelligent_tiering_configuration") {
+    setProjection(
+      projections,
+      "IntelligentTieringConfigurations",
+      "intelligent_tiering_configuration",
+      projectS3IntelligentTieringConfigurations(values, true),
+      []
+    );
+  }
+  if (resourceType === "aws_s3_bucket_lifecycle_configuration") {
+    setProjection(projections, "LifecycleConfiguration", "rule", { Configured: true }, []);
+  }
+  if (resourceType === "aws_s3_bucket_replication_configuration") {
+    setProjection(projections, "ReplicationConfiguration", "rule", { Configured: true }, []);
+  }
+  if (resourceType === "aws_ec2_fleet") {
+    projectEc2FleetTargetCapacity(projections, values.target_capacity_specification, "target_capacity_specification", [
+      "target_capacity_specification",
+      0
+    ]);
+  }
+  if (resourceType === "aws_opensearch_domain" || resourceType === "aws_elasticsearch_domain") {
+    const cluster = firstRecord(values.cluster_config);
+    projectOpenSearch(
+      projections,
+      values.cluster_config,
+      values.ebs_options,
+      values.cold_storage_options ?? cluster?.cold_storage_options,
+      {
+        cluster: "cluster_config",
+        ebs: "ebs_options",
+        cold: "cluster_config"
+      },
+      {
+        cluster: ["cluster_config", 0],
+        ebs: ["ebs_options", 0],
+        cold: ["cluster_config", 0, "cold_storage_options", 0]
+      }
+    );
+  }
+  if (resourceType === "aws_dynamodb_table") {
+    setProjection(projections, "TableReadCapacityUnits", "read_capacity", values.read_capacity);
+    setProjection(projections, "TableWriteCapacityUnits", "write_capacity", values.write_capacity);
+    setProjection(
+      projections,
+      "GlobalSecondaryIndexes",
+      "global_secondary_index",
+      projectDynamoDbIndexes(values.global_secondary_index)
+    );
+  }
+  if (resourceType === "aws_kinesis_stream") {
+    setProjection(
+      projections,
+      "StreamMode",
+      "stream_mode_details",
+      firstRecord(values.stream_mode_details)?.stream_mode,
+      ["stream_mode_details", 0, "stream_mode"]
+    );
+    setProjection(projections, "RetentionPeriodHours", "retention_period", values.retention_period);
+  }
+  if (resourceType === "aws_route53_resolver_endpoint" && Array.isArray(values.ip_address)) {
+    setProjection(projections, "IpAddressCount", "ip_address", values.ip_address.length);
+  }
+  if (resourceType === "aws_lambda_function") {
+    setProjection(
+      projections,
+      "EphemeralStorageSize",
+      "ephemeral_storage",
+      firstRecord(values.ephemeral_storage)?.size,
+      ["ephemeral_storage", 0, "size"]
+    );
+    setProjection(
+      projections,
+      "SnapStart",
+      "snap_start",
+      projectCanonicalRecords(values.snap_start, { apply_on: "ApplyOn" })?.[0],
+      ["snap_start"]
+    );
+  }
+  if (resourceType === "aws_efs_file_system") {
+    projectLifecyclePolicies(projections, values.lifecycle_policy, "lifecycle_policy");
+  }
+  if (resourceType === "aws_ecs_task_definition") {
+    const runtime = firstRecord(values.runtime_platform);
+    setProjection(projections, "CpuArchitecture", "runtime_platform", runtime?.cpu_architecture, [
+      "runtime_platform",
+      0,
+      "cpu_architecture"
+    ]);
+    setProjection(projections, "OperatingSystemFamily", "runtime_platform", runtime?.operating_system_family, [
+      "runtime_platform",
+      0,
+      "operating_system_family"
+    ]);
+    setProjection(
+      projections,
+      "EphemeralStorageSize",
+      "ephemeral_storage",
+      firstRecord(values.ephemeral_storage)?.size_in_gib,
+      ["ephemeral_storage", 0, "size_in_gib"]
+    );
+  }
+  if (resourceType === "aws_eks_cluster") {
+    setProjection(projections, "SupportType", "upgrade_policy", firstRecord(values.upgrade_policy)?.support_type, [
+      "upgrade_policy",
+      0,
+      "support_type"
+    ]);
+  }
+  if (resourceType === "aws_api_gateway_rest_api") {
+    setProjection(projections, "ProtocolType", "type", "REST");
+  }
+  if (resourceType === "aws_codebuild_project") {
+    const environment = firstRecord(values.environment);
+    setProjection(projections, "InstanceType", "environment", environment?.compute_type, [
+      "environment",
+      0,
+      "compute_type"
+    ]);
+    setProjection(projections, "Type", "environment", environment?.type, ["environment", 0, "type"]);
+  }
+  if (resourceType === "aws_appstream_fleet") {
+    setProjection(
+      projections,
+      "InstanceCount",
+      "compute_capacity",
+      firstRecord(values.compute_capacity)?.desired_instances,
+      ["compute_capacity", 0, "desired_instances"]
+    );
+  }
+  if (resourceType === "aws_sagemaker_app") {
+    projections.delete("ResourceSpec");
+    setProjection(projections, "ResourceSpec", "resource_spec", projectSageMakerResourceSpec(values.resource_spec), [
+      "resource_spec"
+    ]);
+  }
+  if (resourceType === "aws_gamelift_game_server_group") {
+    setProjection(
+      projections,
+      "InstanceDefinitions",
+      "instance_definition",
+      projectCanonicalRecords(values.instance_definition, {
+        instance_type: "InstanceType",
+        weighted_capacity: "WeightedCapacity"
+      }),
+      ["instance_definition"]
+    );
+  }
+  if (resourceType === "aws_codebuild_fleet") {
+    setProjection(
+      projections,
+      "ScalingConfiguration",
+      "scaling_configuration",
+      projectCanonicalRecords(values.scaling_configuration, { desired_capacity: "DesiredCapacity" })?.[0],
+      ["scaling_configuration"]
+    );
+  }
+  if (resourceType === "aws_ecs_service") {
+    setProjection(
+      projections,
+      "CapacityProviderStrategies",
+      "capacity_provider_strategy",
+      projectCanonicalRecords(values.capacity_provider_strategy, {
+        capacity_provider: "CapacityProvider",
+        base: "Base",
+        weight: "Weight"
+      }),
+      ["capacity_provider_strategy"]
+    );
+  }
+  if (resourceType === "aws_ec2_capacity_reservation_fleet") {
+    setProjection(
+      projections,
+      "InstanceTypeSpecifications",
+      "instance_type_specifications",
+      projectCanonicalRecords(values.instance_type_specifications, {
+        instance_type: "InstanceType",
+        instance_platform: "InstancePlatform",
+        weight: "WeightedCapacity"
+      }),
+      ["instance_type_specifications"]
+    );
+  }
+  if (resourceType === "aws_emr_instance_fleet") {
+    setProjection(
+      projections,
+      "InstanceTypeConfigs",
+      "instance_type_configs",
+      projectCanonicalRecords(values.instance_type_configs, {
+        instance_type: "InstanceType",
+        weighted_capacity: "WeightedCapacity"
+      }),
+      ["instance_type_configs"]
+    );
+  }
+  if (resourceType === "aws_eks_node_group") {
+    projectEksScalingConfig(projections, values.scaling_config);
+  }
+  if (resourceType === "aws_sagemaker_endpoint_configuration") {
+    projectSageMakerProductionVariant(projections, values.production_variants, "production_variants");
+  }
+  if (resourceType === "aws_apprunner_service") {
+    projectAppRunnerInstanceConfiguration(projections, values.instance_configuration, "instance_configuration", [
+      "instance_configuration",
+      0
+    ]);
+  }
+  if (resourceType === "aws_rds_cluster") {
+    setProjection(projections, "InstanceType", "db_cluster_instance_class", values.db_cluster_instance_class);
+    setProjection(
+      projections,
+      "Instances",
+      "instances",
+      projectCanonicalRecords(values.instances, {
+        instance_type: "InstanceType",
+        db_instance_class: "DBInstanceClass"
+      }),
+      ["instances"]
+    );
+    projectServerlessScalingConfiguration(projections, values.scaling_configuration, "scaling_configuration", [
+      "scaling_configuration",
+      0
+    ]);
+    projectServerlessScalingConfiguration(
+      projections,
+      values.serverlessv2_scaling_configuration,
+      "serverlessv2_scaling_configuration",
+      ["serverlessv2_scaling_configuration", 0]
+    );
+  }
+  if (resourceType === "aws_neptune_cluster") {
+    projectServerlessScalingConfiguration(
+      projections,
+      values.serverless_v2_scaling_configuration,
+      "serverless_v2_scaling_configuration",
+      ["serverless_v2_scaling_configuration", 0]
+    );
+  }
+  if (resourceType.startsWith("aws_fsx_")) {
+    const diskIops = firstRecord(values.disk_iops_configuration);
+    setProjection(projections, "Iops", "disk_iops_configuration", diskIops?.iops, [
+      "disk_iops_configuration",
+      0,
+      "iops"
+    ]);
+  }
+  if (resourceType === "aws_efs_replication_configuration") {
+    const destinations = projectCanonicalRecords(values.destination, {
+      region: "Region",
+      availability_zone_name: "AvailabilityZoneName"
+    });
+    if (destinations && destinations.length > 0) {
+      setProjection(projections, "ReplicationConfiguration", "destination", { Destinations: destinations }, [
+        "destination"
+      ]);
+    }
+  }
+  if (resourceType === "aws_s3_bucket_accelerate_configuration" && values.status !== void 0) {
+    setProjection(projections, "AccelerateConfiguration", "status", { AccelerationStatus: values.status }, ["status"]);
+  }
+  if (resourceType === "aws_networkfirewall_firewall" && Array.isArray(values.subnet_mapping)) {
+    setProjection(projections, "EndpointCount", "subnet_mapping", values.subnet_mapping.length);
+  }
+  return [...projections].map(([name, projection]) => ({ name, ...projection }));
+}
+
+// src/resource-changes/contract.ts
+var RESOURCE_CHANGE_SCHEMA_VERSION = "1.0";
+var MAX_RESOURCE_CHANGE_SET_BYTES = 48 * 1024;
+var MAX_RESOURCE_CHANGES = 250;
+var RESOURCE_CHANGE_MARKER = "cloudburn-resource-changes";
+var RESOURCE_CHANGE_ERROR_MARKER = "cloudburn-resource-changes-error";
+var ResourceChangeSetLimitError = class extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "ResourceChangeSetLimitError";
+  }
+};
+var boundedString = external_exports.string().min(1).max(512);
+var pricingInputNameSchema = external_exports.string().regex(/^[A-Z][A-Za-z0-9]*$/).max(128).refine((name) => RESOURCE_CHANGE_PRICING_INPUT_NAMES.has(name), "Unsupported Resource Change Set 1.0 pricing input");
+var pricingInputsSchema = external_exports.record(pricingInputNameSchema, external_exports.json());
+var unknownReasonSchema = external_exports.enum([
+  "not-in-artifact",
+  "unresolved-expression",
+  "sensitive-value",
+  "template-unavailable",
+  "producer-error",
+  "unsupported-topology"
+]);
+var cloudBurnPricingRegions = new Set(CLOUDBURN_PRICING_REGIONS);
+var unknownInputSchema = external_exports.object({
+  path: boundedString,
+  reason: unknownReasonSchema
+}).strict();
+var pricingInputSideSchema = external_exports.discriminatedUnion("state", [
+  external_exports.object({ state: external_exports.literal("absent") }).strict(),
+  external_exports.object({ state: external_exports.literal("known"), inputs: pricingInputsSchema }).strict(),
+  external_exports.object({
+    state: external_exports.literal("partial"),
+    inputs: pricingInputsSchema,
+    unknowns: external_exports.array(unknownInputSchema).min(1).max(128)
+  }).strict(),
+  external_exports.object({ state: external_exports.literal("unknown"), reason: unknownReasonSchema }).strict()
+]);
+var resourceChangeSchema = external_exports.object({
+  identity: external_exports.object({
+    address: boundedString,
+    resourceType: boundedString,
+    logicalId: boundedString.optional()
+  }).strict(),
+  change: external_exports.enum(["add", "delete", "modify"]),
+  old: pricingInputSideSchema,
+  new: pricingInputSideSchema
+}).strict();
+function assumptionSnapshotSchema(fence) {
+  return external_exports.object({
+    fence: external_exports.literal(fence),
+    revision: boundedString.optional()
+  }).strict();
+}
+var resourceChangeSetSchema = external_exports.object({
+  schemaVersion: external_exports.literal(RESOURCE_CHANGE_SCHEMA_VERSION),
+  source: external_exports.enum(["terraform", "cloudformation", "cdk"]),
+  region: external_exports.string().refine((region) => cloudBurnPricingRegions.has(region), "Region has no CloudBurn pricing mapping"),
+  assumptionSnapshots: external_exports.object({
+    old: assumptionSnapshotSchema("cloudburn-usage-assumptions-previous"),
+    new: assumptionSnapshotSchema("cloudburn-usage-assumptions-current")
+  }).strict(),
+  changes: external_exports.array(resourceChangeSchema).max(MAX_RESOURCE_CHANGES),
+  integrity: external_exports.object({
+    algorithm: external_exports.literal("sha256"),
+    digest: external_exports.string().regex(/^[a-f0-9]{64}$/)
+  }).strict()
+}).strict();
+function createAssumptionSnapshots(beforeRevision, afterRevision) {
+  return {
+    old: {
+      fence: "cloudburn-usage-assumptions-previous",
+      ...beforeRevision ? { revision: beforeRevision } : {}
+    },
+    new: {
+      fence: "cloudburn-usage-assumptions-current",
+      ...afterRevision ? { revision: afterRevision } : {}
+    }
+  };
+}
+function sortKeysDeep(value) {
+  if (Array.isArray(value)) {
+    return value.map(sortKeysDeep);
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).sort(([left], [right]) => left.localeCompare(right)).map(([key, nested]) => [key, sortKeysDeep(nested)])
+    );
+  }
+  return value;
+}
+function unsignedResourceChangeSet(resourceChangeSet) {
+  return JSON.stringify(sortKeysDeep(resourceChangeSet));
+}
+function calculateDigest(resourceChangeSet) {
+  return (0, import_node_crypto.createHash)("sha256").update(unsignedResourceChangeSet(resourceChangeSet), "utf8").digest("hex");
+}
+function assertPricingSideInvariants(side) {
+  if (side.state !== "partial") return;
+  for (const unknown2 of side.unknowns) {
+    const knownInput = Object.keys(side.inputs).find(
+      (inputName) => unknown2.path === inputName || unknown2.path.startsWith(`${inputName}.`) || unknown2.path.startsWith(`${inputName}[`)
+    );
+    if (knownInput) {
+      throw new Error(`${knownInput} cannot be both known and unknown`);
+    }
+  }
+}
+function assertChangeInvariants(resourceChangeSet) {
+  const addresses = /* @__PURE__ */ new Set();
+  for (const resourceChange of resourceChangeSet.changes) {
+    assertPricingSideInvariants(resourceChange.old);
+    assertPricingSideInvariants(resourceChange.new);
+    if (addresses.has(resourceChange.identity.address)) {
+      throw new Error(`Duplicate resource identity '${resourceChange.identity.address}'`);
+    }
+    addresses.add(resourceChange.identity.address);
+    if (resourceChange.change === "add" && resourceChange.old.state !== "absent") {
+      throw new Error(`Added resource '${resourceChange.identity.address}' must have an absent old side`);
+    }
+    if (resourceChange.change === "add" && resourceChange.new.state === "absent") {
+      throw new Error(`Added resource '${resourceChange.identity.address}' must have a present new side`);
+    }
+    if (resourceChange.change === "delete" && resourceChange.new.state !== "absent") {
+      throw new Error(`Deleted resource '${resourceChange.identity.address}' must have an absent new side`);
+    }
+    if (resourceChange.change === "delete" && resourceChange.old.state === "absent") {
+      throw new Error(`Deleted resource '${resourceChange.identity.address}' must have a present old side`);
+    }
+    if (resourceChange.change === "modify" && (resourceChange.old.state === "absent" || resourceChange.new.state === "absent")) {
+      throw new Error(`Modified resource '${resourceChange.identity.address}' must have old and new sides`);
+    }
+  }
+}
+function validateResourceChangeSet(input) {
+  if (input && typeof input === "object" && "changes" in input && Array.isArray(input.changes) && input.changes.length > MAX_RESOURCE_CHANGES) {
+    throw new ResourceChangeSetLimitError(`Resource Change Set exceeds ${MAX_RESOURCE_CHANGES} changes`);
+  }
+  const resourceChangeSet = resourceChangeSetSchema.parse(input);
+  const encodedBytes = Buffer.byteLength(JSON.stringify(resourceChangeSet), "utf8");
+  if (encodedBytes > MAX_RESOURCE_CHANGE_SET_BYTES) {
+    throw new ResourceChangeSetLimitError(`Resource Change Set exceeds ${MAX_RESOURCE_CHANGE_SET_BYTES} bytes`);
+  }
+  assertChangeInvariants(resourceChangeSet);
+  const { integrity, ...unsigned } = resourceChangeSet;
+  const expectedDigest = calculateDigest(unsigned);
+  if (integrity.digest !== expectedDigest) {
+    throw new Error("Resource Change Set integrity digest does not match its contents");
+  }
+  return resourceChangeSet;
+}
+function createResourceChangeSet(draft) {
+  if (draft.changes.length > MAX_RESOURCE_CHANGES) {
+    throw new ResourceChangeSetLimitError(`Resource Change Set exceeds ${MAX_RESOURCE_CHANGES} changes`);
+  }
+  for (const change of draft.changes) {
+    if (change.identity.address.length > 512) {
+      throw new ResourceChangeSetLimitError("Resource Change Set identity exceeds 512 characters");
+    }
+  }
+  const unsigned = resourceChangeSetSchema.omit({ integrity: true }).parse({
+    schemaVersion: RESOURCE_CHANGE_SCHEMA_VERSION,
+    ...draft
+  });
+  return validateResourceChangeSet({
+    ...unsigned,
+    integrity: {
+      algorithm: "sha256",
+      digest: calculateDigest(unsigned)
+    }
+  });
+}
+function renderResourceChangeSet(input) {
+  const resourceChangeSet = validateResourceChangeSet(input);
+  return renderMachineDataComment(RESOURCE_CHANGE_MARKER, resourceChangeSet);
+}
+function renderMachineDataComment(marker, payload) {
+  const serialized = JSON.stringify(payload).replace(/--/g, "-\\u002d");
+  const transportBytes = Buffer.byteLength(serialized, "utf8");
+  if (transportBytes > MAX_RESOURCE_CHANGE_SET_BYTES) {
+    throw new ResourceChangeSetLimitError(
+      `Resource Change Set hidden transport exceeds ${MAX_RESOURCE_CHANGE_SET_BYTES} bytes`
+    );
+  }
+  return `
+
+<!-- ${marker}
+${serialized}
+-->`;
+}
+function renderResourceChangeSetError(message) {
+  const boundedMessage = external_exports.string().min(1).max(512).parse(message);
+  return renderMachineDataComment(RESOURCE_CHANGE_ERROR_MARKER, {
+    schemaVersion: RESOURCE_CHANGE_SCHEMA_VERSION,
+    message: boundedMessage
+  });
+}
+
+// src/resource-changes/comment.ts
+var GITHUB_COMMENT_MAX_BYTES = 65536;
+function truncateUtf8(value, maxBytes) {
+  const bytes = Buffer.from(value, "utf8");
+  let end = Math.min(Math.max(maxBytes, 0), bytes.length);
+  while (end > 0 && (bytes[end] & 192) === 128) end -= 1;
+  return bytes.subarray(0, end).toString("utf8");
+}
+function markdownFence(line) {
+  return line.replace(/\r?\n$/, "").match(/^ {0,3}(`{3,}|~{3,})/)?.[1];
+}
+function truncateMarkdownAtSafeBoundary(markdown, maxBytes) {
+  const lines = markdown.match(/[^\n]*\n|[^\n]+$/g) ?? [];
+  let bytes = 0;
+  let characters = 0;
+  let lastSafeCharacters = 0;
+  let openFence;
+  for (const line of lines) {
+    const lineBytes = Buffer.byteLength(line, "utf8");
+    if (bytes + lineBytes > maxBytes) {
+      const possibleOpeningFence = openFence ? void 0 : markdownFence(line);
+      if (!openFence && !possibleOpeningFence) {
+        return `${markdown.slice(0, characters)}${truncateUtf8(line, maxBytes - bytes)}`;
+      }
+      return markdown.slice(0, lastSafeCharacters);
+    }
+    bytes += lineBytes;
+    characters += line.length;
+    const fence = markdownFence(line);
+    if (fence) {
+      if (openFence && fence[0] === openFence.marker && fence.length >= openFence.length && /^ {0,3}(`+|~+)\s*$/.test(line.trimEnd())) {
+        openFence = void 0;
+      } else if (!openFence) {
+        openFence = { marker: fence[0], length: fence.length };
+      }
+    }
+    if (!openFence) lastSafeCharacters = characters;
+  }
+  return markdown;
+}
+function produceResourceChangeAppendix(build) {
+  try {
+    const resourceChangeSet = build();
+    return { resourceChangeSet, appendix: renderResourceChangeSet(resourceChangeSet) };
+  } catch (error52) {
+    if (!(error52 instanceof ResourceChangeSetLimitError)) throw error52;
+    return {
+      resourceChangeSet: null,
+      appendix: renderResourceChangeSetError("The producer could not emit a valid Resource Change Set 1.0 payload"),
+      error: error52
+    };
+  }
+}
+function appendResourceChangeAppendix(humanMarkdown, appendix) {
+  const completeComment = `${humanMarkdown}${appendix}`;
+  if (Buffer.byteLength(completeComment, "utf8") <= GITHUB_COMMENT_MAX_BYTES) return completeComment;
+  const errorAppendix = renderResourceChangeSetError(
+    "The Resource Change Set was omitted because the complete GitHub comment exceeds 65,536 bytes"
+  );
+  const boundedComment = `${humanMarkdown}${errorAppendix}`;
+  if (Buffer.byteLength(boundedComment, "utf8") <= GITHUB_COMMENT_MAX_BYTES) return boundedComment;
+  const truncationNotice = "\n\n> [!WARNING]\n> Human-readable diff truncated to preserve the Resource Change Set error.\n";
+  const suffix = `${truncationNotice}${errorAppendix}`;
+  const humanBudget = GITHUB_COMMENT_MAX_BYTES - Buffer.byteLength(suffix, "utf8");
+  return `${truncateMarkdownAtSafeBoundary(humanMarkdown, humanBudget)}${suffix}`;
+}
+function isPullRequestCommentEvent(eventName) {
+  return eventName === "pull_request" || eventName === "pull_request_target";
+}
+
 // src/terraform/planfile.ts
+var core = __toESM(require_core());
+var semver = __toESM(require_semver2());
 var planfileSchema = external_exports.object({
   format_version: external_exports.string().refine(
     (v) => {
@@ -40659,6 +41899,9 @@ var planfileSchema = external_exports.object({
   resource_changes: external_exports.array(
     external_exports.object({
       address: external_exports.string(),
+      deposed: external_exports.string().min(1).max(512).optional(),
+      type: external_exports.string(),
+      provider_name: external_exports.string(),
       change: external_exports.object({
         actions: external_exports.union([
           external_exports.tuple([external_exports.literal("no-op")]),
@@ -40670,16 +41913,40 @@ var planfileSchema = external_exports.object({
           external_exports.tuple([external_exports.literal("create"), external_exports.literal("delete")]),
           external_exports.tuple([external_exports.literal("forget")]),
           external_exports.tuple([external_exports.literal("create"), external_exports.literal("forget")])
-        ])
+        ]),
+        before: external_exports.record(external_exports.string(), external_exports.json()).nullable().optional(),
+        after: external_exports.record(external_exports.string(), external_exports.json()).nullable().optional(),
+        after_unknown: external_exports.union([external_exports.boolean(), external_exports.record(external_exports.string(), external_exports.json())]).optional(),
+        before_sensitive: external_exports.union([external_exports.boolean(), external_exports.record(external_exports.string(), external_exports.json())]).optional(),
+        after_sensitive: external_exports.union([external_exports.boolean(), external_exports.record(external_exports.string(), external_exports.json())]).optional()
       })
     })
-  ).optional()
+  ).optional(),
+  configuration: external_exports.object({
+    provider_config: external_exports.record(
+      external_exports.string(),
+      external_exports.object({
+        name: external_exports.string(),
+        full_name: external_exports.string().optional(),
+        alias: external_exports.string().optional(),
+        expressions: external_exports.record(external_exports.string(), external_exports.object({ constant_value: external_exports.json().optional() }).passthrough()).optional()
+      }).passthrough()
+    ).optional()
+  }).passthrough().optional()
 });
+function classifyTerraformActions(actions) {
+  if (actions.length === 1) {
+    if (actions[0] === "create" || actions[0] === "delete" || actions[0] === "update") return actions[0];
+    return null;
+  }
+  if (actions.length === 2 && actions[0] === "create" && actions[1] === "forget") return "create";
+  return actions.length === 2 && actions.includes("create") && actions.includes("delete") ? "replace" : null;
+}
 function parsePlanfileJSON(json2) {
-  core2.info(`Parsing Terraform plan JSON (${json2.length} characters)`);
+  core.info("Parsing Terraform plan JSON");
   const parsed = planfileSchema.parse(json2);
   const resourceChanges = parsed.resource_changes ?? [];
-  core2.info(`Parsed Terraform plan with ${resourceChanges.length} resource change(s)`);
+  core.info(`Parsed Terraform plan with ${resourceChanges.length} resource change(s)`);
   if (resourceChanges.length > 0) {
     const actionCounts = resourceChanges.reduce(
       (acc, rc) => {
@@ -40689,29 +41956,297 @@ function parsePlanfileJSON(json2) {
       },
       {}
     );
-    core2.info(`Action breakdown: ${JSON.stringify(actionCounts)}`);
+    core.info(`Action breakdown: ${JSON.stringify(actionCounts)}`);
   }
   return parsed;
 }
 
+// src/resource-changes/terraform.ts
+var CHANGE_KINDS = {
+  create: "add",
+  delete: "delete",
+  update: "modify",
+  replace: "modify"
+};
+var HASHICORP_AWS_PROVIDER = "registry.terraform.io/hashicorp/aws";
+var maskedArray;
+var maskedObject = new Proxy({}, { get: () => maskedArray });
+maskedArray = [maskedObject];
+function containsTrue(value) {
+  if (value === true) return true;
+  if (Array.isArray(value)) return value.some(containsTrue);
+  return value !== null && typeof value === "object" ? Object.values(value).some(containsTrue) : false;
+}
+function maskedAtPath(mask, path2) {
+  let current = mask;
+  for (const segment of path2) {
+    if (current === true) return true;
+    if (current === false || current == null || typeof current !== "object") return false;
+    current = current[segment];
+  }
+  return containsTrue(current);
+}
+function seedMaskedShape(value, mask) {
+  if (mask === true) return value ?? maskedArray;
+  if (Array.isArray(mask)) {
+    const seeded = Array.isArray(value) ? [...value] : [];
+    for (const [index, nestedMask] of mask.entries()) {
+      seeded[index] = seedMaskedShape(seeded[index], nestedMask);
+    }
+    return seeded;
+  }
+  if (mask && typeof mask === "object") {
+    const seeded = value && typeof value === "object" && !Array.isArray(value) ? { ...value } : {};
+    for (const [key, nestedMask] of Object.entries(mask)) {
+      seeded[key] = seedMaskedShape(seeded[key], nestedMask);
+    }
+    return seeded;
+  }
+  return value;
+}
+function projectSide(values, sensitivity, unknownValues, resourceType) {
+  if (values == null) {
+    return { state: "absent" };
+  }
+  if (sensitivity === true) return { state: "unknown", reason: "sensitive-value" };
+  if (unknownValues === true) return { state: "unknown", reason: "unresolved-expression" };
+  const projectionValues = seedMaskedShape(seedMaskedShape(values, sensitivity), unknownValues);
+  if (hasUnsupportedPricingTopology(resourceType, projectionValues)) {
+    return { state: "unknown", reason: "unsupported-topology" };
+  }
+  const inputs = {};
+  const unknowns = [];
+  for (const { name, sourcePath, value } of projectTerraformPricingInputs(resourceType, projectionValues)) {
+    const isSensitive = maskedAtPath(sensitivity, sourcePath);
+    if (isSensitive) {
+      unknowns.push({ path: name, reason: "sensitive-value" });
+      continue;
+    }
+    const isUnknown = maskedAtPath(unknownValues, sourcePath);
+    if (isUnknown) {
+      unknowns.push({ path: name, reason: "unresolved-expression" });
+      continue;
+    }
+    if (value !== null && value !== void 0) inputs[name] = value;
+  }
+  if (unknowns.length === 0) {
+    if (Object.keys(inputs).length === 0 && !supportsTypeOnlyPricing(resourceType)) {
+      return { state: "unknown", reason: "unsupported-topology" };
+    }
+    return { state: "known", inputs };
+  }
+  if (Object.keys(inputs).length === 0) {
+    return { state: "unknown", reason: unknowns[0].reason };
+  }
+  return { state: "partial", inputs, unknowns };
+}
+function changeKind(resourceChange) {
+  const change = classifyTerraformActions(resourceChange.change.actions);
+  return change ? CHANGE_KINDS[change] : null;
+}
+function resourceAddress(resourceChange) {
+  return resourceChange.deposed ? `${resourceChange.address}#deposed:${resourceChange.deposed}` : resourceChange.address;
+}
+function validateAwsProviderRegions(plan, requestedRegion) {
+  const providerConfigs = Object.values(plan.configuration?.provider_config ?? {}).filter(
+    (provider) => provider.full_name === HASHICORP_AWS_PROVIDER
+  );
+  const providerRegions = providerConfigs.map((provider) => provider.expressions?.region?.constant_value);
+  const concreteRegions = providerRegions.filter((region) => typeof region === "string");
+  const distinctRegions = new Set(concreteRegions);
+  if (distinctRegions.size > 1) {
+    throw new Error("Terraform plan contains multiple AWS provider regions");
+  }
+  const [providerRegion] = distinctRegions;
+  if (providerRegion && providerRegion !== requestedRegion) {
+    throw new Error(
+      `Terraform AWS provider region '${providerRegion}' does not match requested region '${requestedRegion}'`
+    );
+  }
+  if (providerConfigs.length > 1 && concreteRegions.length !== providerConfigs.length) {
+    throw new Error("Terraform plan contains unresolved aliased AWS provider regions");
+  }
+}
+function buildTerraformResourceChangeSet(options) {
+  validateAwsProviderRegions(options.plan, options.region);
+  const changes = [];
+  for (const resourceChange of options.plan.resource_changes ?? []) {
+    if (resourceChange.provider_name !== HASHICORP_AWS_PROVIDER) continue;
+    const change = changeKind(resourceChange);
+    if (!change) continue;
+    changes.push({
+      identity: {
+        address: resourceAddress(resourceChange),
+        resourceType: resourceChange.type
+      },
+      change,
+      old: change === "add" ? { state: "absent" } : projectSide(
+        resourceChange.change.before,
+        resourceChange.change.before_sensitive,
+        void 0,
+        resourceChange.type
+      ),
+      new: change === "delete" ? { state: "absent" } : projectSide(
+        resourceChange.change.after,
+        resourceChange.change.after_sensitive,
+        resourceChange.change.after_unknown,
+        resourceChange.type
+      )
+    });
+  }
+  return createResourceChangeSet({
+    source: "terraform",
+    region: options.region,
+    assumptionSnapshots: createAssumptionSnapshots(options.beforeRevision, options.afterRevision),
+    changes
+  });
+}
+
+// src/utils/usage-assumptions.ts
+var fs = __toESM(require("fs"));
+var path = __toESM(require("path"));
+var core2 = __toESM(require_core());
+var github = __toESM(require_github());
+
+// src/utils/comment-appendix.ts
+function fencedBlock(language, content) {
+  const longestBacktickRun = Math.max(0, ...(content.match(/`+/g) ?? []).map((run2) => run2.length));
+  const delimiter = "`".repeat(Math.max(3, longestBacktickRun + 1));
+  return `${delimiter}${language}
+${content}
+${delimiter}`;
+}
+function renderCollapsedAppendix(summary2, blocks) {
+  if (blocks.length === 0) return "";
+  return `
+
+<details><summary><em>${summary2}</em></summary>
+
+${blocks.join("\n\n")}
+
+</details>`;
+}
+
+// src/utils/usage-assumptions.ts
+var USAGE_ASSUMPTIONS_PATH = ".cloudburn/usage-assumptions.json";
+var MAX_USAGE_ASSUMPTIONS_BYTES = 64 * 1024;
+var BLOCK_LABEL = "cloudburn-usage-assumptions";
+function errorFence(name, message) {
+  return fencedBlock(`${BLOCK_LABEL}-${name}-error`, JSON.stringify({ message }));
+}
+function toFencedBlock(name, snapshot) {
+  if (snapshot.status === "absent") {
+    return void 0;
+  }
+  if (snapshot.status === "unavailable") {
+    return errorFence(name, "Usage assumptions could not be read at the pull request base commit");
+  }
+  if (Buffer.byteLength(snapshot.content, "utf-8") > MAX_USAGE_ASSUMPTIONS_BYTES) {
+    core2.warning(
+      `Skipping the ${name} usage assumptions: '${USAGE_ASSUMPTIONS_PATH}' exceeds ${MAX_USAGE_ASSUMPTIONS_BYTES} bytes.`
+    );
+    return errorFence(name, "Usage assumptions file exceeds the maximum allowed size");
+  }
+  try {
+    JSON.parse(snapshot.content);
+  } catch {
+    core2.warning(`Skipping the ${name} usage assumptions: '${USAGE_ASSUMPTIONS_PATH}' is not valid JSON.`);
+    return errorFence(name, "Usage assumptions file is not valid JSON");
+  }
+  return fencedBlock(`${BLOCK_LABEL}-${name}`, snapshot.content.trim());
+}
+function renderUsageAssumptions({ current, previous }) {
+  if (current.status === "absent" && previous.status === "unavailable") {
+    return "";
+  }
+  const blocks = [toFencedBlock("current", current), toFencedBlock("previous", previous)].filter(
+    (block) => block !== void 0
+  );
+  if (blocks.length === 0) {
+    return "";
+  }
+  core2.info(`Embedding ${blocks.length} usage assumptions block(s) in the comment`);
+  return renderCollapsedAppendix("CloudBurn usage assumptions", blocks);
+}
+async function readAtCommit(octokit, ref) {
+  try {
+    const { data } = await octokit.rest.repos.getContent({
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
+      path: USAGE_ASSUMPTIONS_PATH,
+      ref
+    });
+    if (Array.isArray(data) || data.type !== "file" || data.encoding !== "base64") {
+      core2.warning(`'${USAGE_ASSUMPTIONS_PATH}' at commit ${ref} is not a readable file.`);
+      return { status: "unavailable" };
+    }
+    return { status: "found", content: Buffer.from(data.content, "base64").toString("utf-8") };
+  } catch (error52) {
+    if (error52.status === 404) {
+      core2.info(`No '${USAGE_ASSUMPTIONS_PATH}' at commit ${ref}, treating the file as newly added`);
+      return { status: "absent" };
+    }
+    core2.warning(
+      `Could not read '${USAGE_ASSUMPTIONS_PATH}' at commit ${ref}: ${error52 instanceof Error ? error52.message : String(error52)}`
+    );
+    return { status: "unavailable" };
+  }
+}
+async function readUsageAssumptions(options) {
+  const workspace = options.workspace ?? process.env.GITHUB_WORKSPACE ?? process.cwd();
+  const file2 = path.join(workspace, USAGE_ASSUMPTIONS_PATH);
+  if (!fs.existsSync(file2)) {
+    core2.info(`No '${USAGE_ASSUMPTIONS_PATH}' in the workspace, skipping usage assumptions`);
+    return { current: { status: "absent" }, previous: { status: "absent" } };
+  }
+  core2.info(`Reading usage assumptions from '${USAGE_ASSUMPTIONS_PATH}'`);
+  const current = { status: "found", content: fs.readFileSync(file2, "utf-8") };
+  const baseSha = options.baseSha ?? github.context.payload.pull_request?.base?.sha;
+  if (!baseSha) {
+    core2.info("No pull request base commit available, embedding the current usage assumptions only");
+    return { current, previous: { status: "absent" } };
+  }
+  return { current, previous: await readAtCommit(options.octokit, baseSha) };
+}
+async function usageAssumptionsSection(options) {
+  return renderUsageAssumptions(await readUsageAssumptions(options));
+}
+
+// src/terraform/comment.ts
+var core4 = __toESM(require_core());
+var github2 = __toESM(require_github());
+
 // src/terraform/render.ts
+var core3 = __toESM(require_core());
+var exec = __toESM(require_exec());
 function planIsEmpty(plan) {
   return !plan.createdResources && !plan.recreatedResources && !plan.updatedResources && !plan.deletedResources;
 }
-function extractResourceContent(name, humanReadablePlan) {
+function renderedResourceKey(resource) {
+  return resource.deposed ? `${resource.address}#deposed:${resource.deposed}` : resource.address;
+}
+function extractResourceContent(resource, humanReadablePlan) {
   const lines = humanReadablePlan.split("\n");
-  const resourceHeaderIndex = lines.findIndex((line) => line.startsWith(`  # ${name}`));
+  const headerPrefix = `  # ${resource.address}`;
+  const resourceHeaderIndex = lines.findIndex((line) => {
+    if (!line.startsWith(headerPrefix)) return false;
+    const suffix = line.slice(headerPrefix.length);
+    if (resource.deposed) return suffix.startsWith(` (deposed object ${resource.deposed})`);
+    return !suffix.startsWith(" (deposed object ");
+  });
   if (resourceHeaderIndex < 0) {
-    throw Error(`Resource '${name}' is modified but cannot be found in human-readable plan.`);
+    throw Error(`Resource '${renderedResourceKey(resource)}' is modified but cannot be found in human-readable plan.`);
   }
   let resourceLineIndex = lines.slice(resourceHeaderIndex).findIndex((line) => line.match(/.*[+-~] resource/));
   if (resourceLineIndex < 0) {
-    throw Error(`Resource block cannot be found for resource '${name}'.`);
+    throw Error(`Resource block cannot be found for resource '${renderedResourceKey(resource)}'.`);
   }
   resourceLineIndex += resourceHeaderIndex;
   const closingLineIndex = lines.slice(resourceLineIndex).indexOf("    }");
   if (closingLineIndex < 0) {
-    throw Error(`Resource '${name}' cannot be properly extracted from the human-readable plan.`);
+    throw Error(
+      `Resource '${renderedResourceKey(resource)}' cannot be properly extracted from the human-readable plan.`
+    );
   }
   let reason;
   if (resourceLineIndex - resourceHeaderIndex > 1) {
@@ -40744,25 +42279,19 @@ _\u2192 ${content.reason}_`;
   }
   return result;
 }
-function extractResources(names, humanReadablePlan) {
-  if (names.length === 0) {
+function extractResources(resources, humanReadablePlan) {
+  if (resources.length === 0) {
     return void 0;
   }
-  return names.reduce(
-    (acc, name) => {
-      const content = extractResourceContent(name, humanReadablePlan);
-      acc[name] = formatResourceContent(content);
+  return resources.reduce(
+    (acc, resource) => {
+      const key = renderedResourceKey(resource);
+      const content = extractResourceContent(resource, humanReadablePlan);
+      acc[key] = formatResourceContent(content);
       return acc;
     },
     {}
   );
-}
-function arraysEqual(a, b) {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) {
-    if (a[i] !== b[i]) return false;
-  }
-  return true;
 }
 function internalRenderPlan(structuredPlan, humanReadablePlan) {
   if (structuredPlan.resource_changes === void 0 || structuredPlan.resource_changes.length === 0) {
@@ -40772,15 +42301,16 @@ function internalRenderPlan(structuredPlan, humanReadablePlan) {
   core3.info(`Rendering ${structuredPlan.resource_changes.length} resource change(s)`);
   const { created, updated, recreated, deleted } = structuredPlan.resource_changes.reduce(
     (acc, resource) => {
-      const actions = resource.change.actions;
-      if (arraysEqual(actions, ["create"])) {
-        acc.created.push(resource.address);
-      } else if (arraysEqual(actions, ["update"])) {
-        acc.updated.push(resource.address);
-      } else if (arraysEqual(actions, ["delete", "create"]) || arraysEqual(actions, ["create", "delete"])) {
-        acc.recreated.push(resource.address);
-      } else if (arraysEqual(actions, ["delete"])) {
-        acc.deleted.push(resource.address);
+      const change = classifyTerraformActions(resource.change.actions);
+      const identity = { address: resource.address, ...resource.deposed ? { deposed: resource.deposed } : {} };
+      if (change === "create") {
+        acc.created.push(identity);
+      } else if (change === "update") {
+        acc.updated.push(identity);
+      } else if (change === "replace") {
+        acc.recreated.push(identity);
+      } else if (change === "delete") {
+        acc.deleted.push(identity);
       }
       return acc;
     },
@@ -40823,7 +42353,10 @@ async function renderPlan({
   }).then((json2) => parsePlanfileJSON(json2));
   core3.info("Fetching human-readable plan");
   const humanReadablePlanfile = await exec.getExecOutput(terraformCommand, ["show", "-no-color", planfile], options).then((output) => output.stdout);
-  return internalRenderPlan(structuredPlanfile, humanReadablePlanfile);
+  return {
+    plan: internalRenderPlan(structuredPlanfile, humanReadablePlanfile),
+    structuredPlan: structuredPlanfile
+  };
 }
 
 // src/terraform/comment.ts
@@ -40974,7 +42507,7 @@ async function run() {
   };
   validateAwsRegion(inputs.awsRegion || void 0);
   const octokit = github3.getOctokit(inputs.token);
-  const plan = await core5.group(
+  const { plan, structuredPlan } = await core5.group(
     "Render plan",
     () => renderPlan({
       planfile: inputs.planfile,
@@ -40982,14 +42515,32 @@ async function run() {
       workingDirectory: inputs.workingDirectory
     })
   );
+  const pullRequest = github3.context.payload.pull_request;
+  const producedResourceChanges = inputs.awsRegion ? produceResourceChangeAppendix(
+    () => buildTerraformResourceChangeSet({
+      plan: structuredPlan,
+      region: inputs.awsRegion,
+      beforeRevision: pullRequest?.base.sha,
+      afterRevision: pullRequest?.head.sha
+    })
+  ) : null;
+  const resourceChangeSet = producedResourceChanges?.resourceChangeSet ?? null;
+  const resourceChanges = producedResourceChanges?.appendix ?? renderResourceChangeSetError("The Terraform producer requires the aws-region input");
+  if (producedResourceChanges?.error) {
+    core5.warning(
+      `Could not publish Resource Change Set 1.0: ${producedResourceChanges.error instanceof Error ? producedResourceChanges.error.message : String(producedResourceChanges.error)}`
+    );
+  }
+  if (resourceChangeSet) core5.setOutput("resource-changes", JSON.stringify(resourceChangeSet));
   const usageAssumptions = await core5.group("Collect usage assumptions", () => usageAssumptionsSection({ octokit }));
   const planMarkdown = await core5.group("Render plan diff markdown", async () => {
-    const markdown = renderMarkdown({
+    const humanMarkdown = renderMarkdown({
       plan,
       header: inputs.header || void 0,
       awsRegion: inputs.awsRegion || void 0,
       usageAssumptions
     });
+    const markdown = appendResourceChangeAppendix(humanMarkdown, resourceChanges);
     core5.setOutput("markdown", markdown);
     core5.setOutput("empty", planIsEmpty(plan));
     return markdown;
@@ -41000,7 +42551,7 @@ async function run() {
     await core5.summary.addRaw(planMarkdown).write();
     core5.info("Successfully wrote plan to step summary");
   });
-  if (!planIsEmpty(plan) && ["pull_request", "pull_request_target"].includes(github3.context.eventName)) {
+  if (isPullRequestCommentEvent(github3.context.eventName)) {
     await core5.group("Render comment", () => {
       return createOrUpdateComment({ octokit, content: planMarkdown });
     });
