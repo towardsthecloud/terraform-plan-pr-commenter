@@ -40765,7 +40765,6 @@ var TERRAFORM_COMMON_PRICING_INPUTS = Object.freeze({
   instance_definitions: "InstanceDefinitions",
   instance_type: "InstanceType",
   instance_type_configs: "InstanceTypeConfigs",
-  instance_type_specifications: "InstanceTypeSpecifications",
   instance_types: "InstanceTypes",
   instances: "Instances",
   ami: "MachineImage",
@@ -40854,6 +40853,7 @@ var TERRAFORM_COMMON_PRICING_INPUTS = Object.freeze({
 var TERRAFORM_RESOURCE_PRICING_INPUTS = Object.freeze({
   aws_ebs_volume: { type: "VolumeType" },
   aws_lb: { load_balancer_type: "Type" },
+  aws_alb: { load_balancer_type: "Type" },
   aws_vpn_connection: { type: "Type" }
 });
 var SPECIALIZED_PRICING_INPUT_NAMES = [
@@ -40863,7 +40863,8 @@ var SPECIALIZED_PRICING_INPUT_NAMES = [
   "MemorySizeInMB",
   "MaxConcurrency",
   "ProvisionedConcurrency",
-  "ResourceSpec"
+  "ResourceSpec",
+  "StorageType"
 ];
 var RESOURCE_CHANGE_PRICING_INPUT_NAMES = /* @__PURE__ */ new Set([
   ...Object.values(TEMPLATE_PRICING_INPUTS),
@@ -40905,6 +40906,7 @@ var TYPE_ONLY_TERRAFORM_PRICING_RESOURCES = /* @__PURE__ */ new Set([
   "aws_vpn_connection",
   "aws_globalaccelerator_accelerator",
   "aws_lb",
+  "aws_alb",
   "aws_elb",
   "aws_vpc_endpoint",
   "aws_ec2_transit_gateway_vpc_attachment",
@@ -41214,6 +41216,7 @@ var UNSUPPORTED_PRICE_DRIVER_FIELDS = Object.freeze({
   aws_secretsmanager_secret: ["replica"],
   "AWS::ElasticLoadBalancingV2::LoadBalancer": ["MinimumLoadBalancerCapacity", "Scheme", "IpAddressType"],
   aws_lb: ["minimum_load_balancer_capacity", "internal", "ip_address_type"],
+  aws_alb: ["minimum_load_balancer_capacity", "internal", "ip_address_type"],
   "AWS::Batch::ComputeEnvironment": ["ComputeResources"],
   aws_batch_compute_environment: ["compute_resources"],
   "AWS::KMS::Key": ["KeySpec", "KeyUsage"],
@@ -41283,10 +41286,15 @@ function projectEc2FleetTargetCapacity(projections, value, source, sourcePath) {
     setProjection(projections, canonical, source, specification[key], [...sourcePath, key]);
   }
 }
+var AURORA_ENGINES = /* @__PURE__ */ new Set(["aurora", "aurora-mysql", "aurora-postgresql"]);
+var AURORA_STANDARD_STORAGE_TYPE = "aurora";
+function isAuroraEngine(engine) {
+  return typeof engine === "string" && AURORA_ENGINES.has(engine);
+}
 function supportsTerraformProjection(resourceType) {
   return resourceType.startsWith("aws_");
 }
-function projectTerraformPricingInputs(resourceType, values) {
+function projectTerraformPricingInputs(resourceType, values, options = {}) {
   if (!supportsTerraformProjection(resourceType)) return [];
   const resourceAliases = TERRAFORM_RESOURCE_PRICING_INPUTS[resourceType];
   const projections = /* @__PURE__ */ new Map();
@@ -41519,19 +41527,6 @@ function projectTerraformPricingInputs(resourceType, values) {
       ["capacity_provider_strategy"]
     );
   }
-  if (resourceType === "aws_ec2_capacity_reservation_fleet") {
-    setProjection(
-      projections,
-      "InstanceTypeSpecifications",
-      "instance_type_specifications",
-      projectCanonicalRecords(values.instance_type_specifications, {
-        instance_type: "InstanceType",
-        instance_platform: "InstancePlatform",
-        weight: "WeightedCapacity"
-      }),
-      ["instance_type_specifications"]
-    );
-  }
   if (resourceType === "aws_emr_instance_fleet") {
     setProjection(
       projections,
@@ -41556,7 +41551,19 @@ function projectTerraformPricingInputs(resourceType, values) {
       0
     ]);
   }
+  if (resourceType === "aws_rds_cluster_instance") {
+    projections.delete("VolumeType");
+    setProjection(projections, "StorageType", "cluster_identifier", options.clusterStorageType, ["storage_type"]);
+  }
   if (resourceType === "aws_rds_cluster") {
+    projections.delete("VolumeType");
+    const storageType = values.storage_type;
+    setProjection(
+      projections,
+      "StorageType",
+      "storage_type",
+      storageType === "" ? isAuroraEngine(values.engine) ? AURORA_STANDARD_STORAGE_TYPE : void 0 : storageType
+    );
     setProjection(projections, "InstanceType", "db_cluster_instance_class", values.db_cluster_instance_class);
     setProjection(
       projections,
@@ -41886,6 +41893,12 @@ function isPullRequestCommentEvent(eventName) {
 // src/terraform/planfile.ts
 var core = __toESM(require_core());
 var semver = __toESM(require_semver2());
+var configurationModuleSchema = external_exports.lazy(
+  () => external_exports.object({
+    resources: external_exports.array(external_exports.object({ address: external_exports.string(), expressions: external_exports.record(external_exports.string(), external_exports.json()).optional() })).optional(),
+    module_calls: external_exports.record(external_exports.string(), external_exports.object({ module: configurationModuleSchema.optional() })).optional()
+  })
+);
 var planfileSchema = external_exports.object({
   format_version: external_exports.string().refine(
     (v) => {
@@ -41931,7 +41944,9 @@ var planfileSchema = external_exports.object({
         alias: external_exports.string().optional(),
         expressions: external_exports.record(external_exports.string(), external_exports.object({ constant_value: external_exports.json().optional() }).passthrough()).optional()
       }).passthrough()
-    ).optional()
+    ).optional(),
+    // Only used to resolve resource references; a shape surprise must not reject the whole plan.
+    root_module: configurationModuleSchema.optional().catch(void 0)
   }).passthrough().optional()
 });
 function classifyTerraformActions(actions) {
@@ -42004,7 +42019,7 @@ function seedMaskedShape(value, mask) {
   }
   return value;
 }
-function projectSide(values, sensitivity, unknownValues, resourceType) {
+function projectSide(values, sensitivity, unknownValues, resourceType, options = {}) {
   if (values == null) {
     return { state: "absent" };
   }
@@ -42016,7 +42031,7 @@ function projectSide(values, sensitivity, unknownValues, resourceType) {
   }
   const inputs = {};
   const unknowns = [];
-  for (const { name, sourcePath, value } of projectTerraformPricingInputs(resourceType, projectionValues)) {
+  for (const { name, sourcePath, value } of projectTerraformPricingInputs(resourceType, projectionValues, options)) {
     const isSensitive = maskedAtPath(sensitivity, sourcePath);
     if (isSensitive) {
       unknowns.push({ path: name, reason: "sensitive-value" });
@@ -42067,12 +42082,81 @@ function validateAwsProviderRegions(plan, requestedRegion) {
     throw new Error("Terraform plan contains unresolved aliased AWS provider regions");
   }
 }
+var MODULE_PREFIX = /^(?:module\.[^.[]+(?:\[(?:"(?:[^"\\]|\\.)*"|\d+)\])?\.)*/;
+var INSTANCE_INDEX = /\[(?:"(?:[^"\\]|\\.)*"|\d+)\]$/;
+var CLUSTER_REFERENCE = /^aws_rds_cluster\.([^.[\]]+)((?:\[(?:"(?:[^"\\]|\\.)*"|\d+)\])?)/;
+function configuredClusterIdentifierReferences(plan, instanceAddress) {
+  const modulePrefix = MODULE_PREFIX.exec(instanceAddress)?.[0] ?? "";
+  const resourceAddress2 = instanceAddress.slice(modulePrefix.length).replace(INSTANCE_INDEX, "");
+  let module2 = plan.configuration?.root_module;
+  for (const [, name] of modulePrefix.matchAll(/module\.([^.[]+)(?:\[[^\]]*\])?\./g)) {
+    module2 = module2?.module_calls?.[name]?.module;
+  }
+  const expression = module2?.resources?.find((resource) => resource.address === resourceAddress2)?.expressions?.cluster_identifier;
+  const references = expression?.references;
+  return Array.isArray(references) ? references.filter((reference) => typeof reference === "string") : [];
+}
+function referencedClusterChanges(plan, instance, clusters) {
+  const matches = configuredClusterIdentifierReferences(plan, instance.address).map((reference) => CLUSTER_REFERENCE.exec(reference)).filter((match) => match !== null);
+  const names = new Set(matches.map(([, name2]) => name2));
+  if (names.size !== 1) return [];
+  const [name] = names;
+  const indexes = new Set(matches.map(([, , index]) => index).filter((index) => index !== ""));
+  if (indexes.size > 1) return [];
+  const [indexed] = indexes;
+  const prefix = MODULE_PREFIX.exec(instance.address)?.[0] ?? "";
+  const base = `${prefix}aws_rds_cluster.${name}`;
+  return clusters.filter(
+    (cluster) => indexed === void 0 ? cluster.address === base || cluster.address.replace(INSTANCE_INDEX, "") === base : cluster.address === `${base}${indexed}`
+  );
+}
+function clusterStorageType(cluster, side) {
+  const change = cluster.change;
+  const values = side === "old" ? change.before : change.after;
+  const sensitivity = side === "old" ? change.before_sensitive : change.after_sensitive;
+  const unknownValues = side === "old" ? void 0 : change.after_unknown;
+  if (!values || sensitivity === true || unknownValues === true) return void 0;
+  if (maskedAtPath(sensitivity, ["storage_type"]) || maskedAtPath(unknownValues, ["storage_type"])) return void 0;
+  const storageType = projectTerraformPricingInputs("aws_rds_cluster", values).find(
+    ({ name }) => name === "StorageType"
+  )?.value;
+  return typeof storageType === "string" ? storageType : void 0;
+}
+function memberClusterStorageType(plan, instance, side) {
+  const values = side === "old" ? instance.change.before : instance.change.after;
+  if (!values) return void 0;
+  const clusters = (plan.resource_changes ?? []).filter(
+    (change) => change.type === "aws_rds_cluster" && change.provider_name === HASHICORP_AWS_PROVIDER && !change.deposed
+  );
+  let candidates = side === "new" ? referencedClusterChanges(plan, instance, clusters) : [];
+  if (candidates.length === 0) {
+    const sensitivity = side === "old" ? instance.change.before_sensitive : instance.change.after_sensitive;
+    const unknownValues = side === "old" ? void 0 : instance.change.after_unknown;
+    const identifier = values.cluster_identifier;
+    if (typeof identifier !== "string" || maskedAtPath(sensitivity, ["cluster_identifier"]) || maskedAtPath(unknownValues, ["cluster_identifier"])) {
+      return void 0;
+    }
+    candidates = clusters.filter(
+      (cluster) => (side === "old" ? cluster.change.before : cluster.change.after)?.cluster_identifier === identifier
+    );
+  }
+  return candidates.length === 1 ? clusterStorageType(candidates[0], side) : void 0;
+}
+function unchangedMemberRepriced(plan, resourceChange) {
+  if (resourceChange.type !== "aws_rds_cluster_instance" || resourceChange.change.actions[0] !== "no-op") return null;
+  const before = memberClusterStorageType(plan, resourceChange, "old");
+  const after = memberClusterStorageType(plan, resourceChange, "new");
+  return before !== void 0 && after !== void 0 && before !== after ? "modify" : null;
+}
+function memberOptions(plan, resourceChange, side) {
+  return resourceChange.type === "aws_rds_cluster_instance" ? { clusterStorageType: memberClusterStorageType(plan, resourceChange, side) } : {};
+}
 function buildTerraformResourceChangeSet(options) {
   validateAwsProviderRegions(options.plan, options.region);
   const changes = [];
   for (const resourceChange of options.plan.resource_changes ?? []) {
     if (resourceChange.provider_name !== HASHICORP_AWS_PROVIDER) continue;
-    const change = changeKind(resourceChange);
+    const change = changeKind(resourceChange) ?? unchangedMemberRepriced(options.plan, resourceChange);
     if (!change) continue;
     changes.push({
       identity: {
@@ -42084,13 +42168,15 @@ function buildTerraformResourceChangeSet(options) {
         resourceChange.change.before,
         resourceChange.change.before_sensitive,
         void 0,
-        resourceChange.type
+        resourceChange.type,
+        memberOptions(options.plan, resourceChange, "old")
       ),
       new: change === "delete" ? { state: "absent" } : projectSide(
         resourceChange.change.after,
         resourceChange.change.after_sensitive,
         resourceChange.change.after_unknown,
-        resourceChange.type
+        resourceChange.type,
+        memberOptions(options.plan, resourceChange, "new")
       )
     });
   }
