@@ -185,7 +185,7 @@ var require_file_command = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.prepareKeyValueMessage = exports2.issueFileCommand = void 0;
     var crypto = __importStar(require("crypto"));
-    var fs2 = __importStar(require("fs"));
+    var fs = __importStar(require("fs"));
     var os = __importStar(require("os"));
     var utils_1 = require_utils();
     function issueFileCommand(command, message) {
@@ -193,10 +193,10 @@ var require_file_command = __commonJS({
       if (!filePath) {
         throw new Error(`Unable to find environment variable for file command ${command}`);
       }
-      if (!fs2.existsSync(filePath)) {
+      if (!fs.existsSync(filePath)) {
         throw new Error(`Missing file at path: ${filePath}`);
       }
-      fs2.appendFileSync(filePath, `${(0, utils_1.toCommandValue)(message)}${os.EOL}`, {
+      fs.appendFileSync(filePath, `${(0, utils_1.toCommandValue)(message)}${os.EOL}`, {
         encoding: "utf8"
       });
     }
@@ -1001,14 +1001,14 @@ var require_util = __commonJS({
         }
         const port = url2.port != null ? url2.port : url2.protocol === "https:" ? 443 : 80;
         let origin = url2.origin != null ? url2.origin : `${url2.protocol}//${url2.hostname}:${port}`;
-        let path2 = url2.path != null ? url2.path : `${url2.pathname || ""}${url2.search || ""}`;
+        let path = url2.path != null ? url2.path : `${url2.pathname || ""}${url2.search || ""}`;
         if (origin.endsWith("/")) {
           origin = origin.substring(0, origin.length - 1);
         }
-        if (path2 && !path2.startsWith("/")) {
-          path2 = `/${path2}`;
+        if (path && !path.startsWith("/")) {
+          path = `/${path}`;
         }
-        url2 = new URL(origin + path2);
+        url2 = new URL(origin + path);
       }
       return url2;
     }
@@ -2622,20 +2622,20 @@ var require_parseParams = __commonJS({
 var require_basename = __commonJS({
   "node_modules/.pnpm/@fastify+busboy@2.1.1/node_modules/@fastify/busboy/lib/utils/basename.js"(exports2, module2) {
     "use strict";
-    module2.exports = function basename(path2) {
-      if (typeof path2 !== "string") {
+    module2.exports = function basename(path) {
+      if (typeof path !== "string") {
         return "";
       }
-      for (var i = path2.length - 1; i >= 0; --i) {
-        switch (path2.charCodeAt(i)) {
+      for (var i = path.length - 1; i >= 0; --i) {
+        switch (path.charCodeAt(i)) {
           case 47:
           // '/'
           case 92:
-            path2 = path2.slice(i + 1);
-            return path2 === ".." || path2 === "." ? "" : path2;
+            path = path.slice(i + 1);
+            return path === ".." || path === "." ? "" : path;
         }
       }
-      return path2 === ".." || path2 === "." ? "" : path2;
+      return path === ".." || path === "." ? "" : path;
     };
   }
 });
@@ -4271,18 +4271,18 @@ var require_webidl = __commonJS({
     webidl.errors.exception = function(message) {
       return new TypeError(`${message.header}: ${message.message}`);
     };
-    webidl.errors.conversionFailed = function(context4) {
-      const plural = context4.types.length === 1 ? "" : " one of";
-      const message = `${context4.argument} could not be converted to${plural}: ${context4.types.join(", ")}.`;
+    webidl.errors.conversionFailed = function(context3) {
+      const plural = context3.types.length === 1 ? "" : " one of";
+      const message = `${context3.argument} could not be converted to${plural}: ${context3.types.join(", ")}.`;
       return webidl.errors.exception({
-        header: context4.prefix,
+        header: context3.prefix,
         message
       });
     };
-    webidl.errors.invalidArgument = function(context4) {
+    webidl.errors.invalidArgument = function(context3) {
       return webidl.errors.exception({
-        header: context4.prefix,
-        message: `"${context4.value}" is an invalid ${context4.type}.`
+        header: context3.prefix,
+        message: `"${context3.value}" is an invalid ${context3.type}.`
       });
     };
     webidl.brandCheck = function(V, I, opts = void 0) {
@@ -5666,7 +5666,7 @@ var require_request = __commonJS({
     }
     var Request = class _Request {
       constructor(origin, {
-        path: path2,
+        path,
         method,
         body,
         headers,
@@ -5680,11 +5680,11 @@ var require_request = __commonJS({
         throwOnError,
         expectContinue
       }, handler2) {
-        if (typeof path2 !== "string") {
+        if (typeof path !== "string") {
           throw new InvalidArgumentError("path must be a string");
-        } else if (path2[0] !== "/" && !(path2.startsWith("http://") || path2.startsWith("https://")) && method !== "CONNECT") {
+        } else if (path[0] !== "/" && !(path.startsWith("http://") || path.startsWith("https://")) && method !== "CONNECT") {
           throw new InvalidArgumentError("path must be an absolute URL or start with a slash");
-        } else if (invalidPathRegex.exec(path2) !== null) {
+        } else if (invalidPathRegex.exec(path) !== null) {
           throw new InvalidArgumentError("invalid request path");
         }
         if (typeof method !== "string") {
@@ -5747,7 +5747,7 @@ var require_request = __commonJS({
         this.completed = false;
         this.aborted = false;
         this.upgrade = upgrade || null;
-        this.path = query ? util.buildURL(path2, query) : path2;
+        this.path = query ? util.buildURL(path, query) : path;
         this.origin = origin;
         this.idempotent = idempotent == null ? method === "HEAD" || method === "GET" : idempotent;
         this.blocking = blocking == null ? false : blocking;
@@ -6755,9 +6755,9 @@ var require_RedirectHandler = __commonJS({
           return this.handler.onHeaders(statusCode, headers, resume, statusText);
         }
         const { origin, pathname, search } = util.parseURL(new URL(this.location, this.opts.origin && new URL(this.opts.path, this.opts.origin)));
-        const path2 = search ? `${pathname}${search}` : pathname;
+        const path = search ? `${pathname}${search}` : pathname;
         this.opts.headers = cleanRequestHeaders(this.opts.headers, statusCode === 303, this.opts.origin !== origin);
-        this.opts.path = path2;
+        this.opts.path = path;
         this.opts.origin = origin;
         this.opts.maxRedirections = 0;
         this.opts.query = null;
@@ -7999,7 +7999,7 @@ var require_client = __commonJS({
         writeH2(client, client[kHTTP2Session], request2);
         return;
       }
-      const { body, method, path: path2, host, upgrade, headers, blocking, reset } = request2;
+      const { body, method, path, host, upgrade, headers, blocking, reset } = request2;
       const expectsPayload = method === "PUT" || method === "POST" || method === "PATCH";
       if (body && typeof body.read === "function") {
         body.read(0);
@@ -8049,7 +8049,7 @@ var require_client = __commonJS({
       if (blocking) {
         socket[kBlocking] = true;
       }
-      let header = `${method} ${path2} HTTP/1.1\r
+      let header = `${method} ${path} HTTP/1.1\r
 `;
       if (typeof host === "string") {
         header += `host: ${host}\r
@@ -8112,7 +8112,7 @@ upgrade: ${upgrade}\r
       return true;
     }
     function writeH2(client, session, request2) {
-      const { body, method, path: path2, host, upgrade, expectContinue, signal, headers: reqHeaders } = request2;
+      const { body, method, path, host, upgrade, expectContinue, signal, headers: reqHeaders } = request2;
       let headers;
       if (typeof reqHeaders === "string") headers = Request[kHTTP2CopyHeaders](reqHeaders.trim());
       else headers = reqHeaders;
@@ -8155,7 +8155,7 @@ upgrade: ${upgrade}\r
         });
         return true;
       }
-      headers[HTTP2_HEADER_PATH] = path2;
+      headers[HTTP2_HEADER_PATH] = path;
       headers[HTTP2_HEADER_SCHEME] = "https";
       const expectsPayload = method === "PUT" || method === "POST" || method === "PATCH";
       if (body && typeof body.read === "function") {
@@ -9614,15 +9614,15 @@ var require_api_request = __commonJS({
         }
         addSignal(this, signal);
       }
-      onConnect(abort, context4) {
+      onConnect(abort, context3) {
         if (!this.callback) {
           throw new RequestAbortedError();
         }
         this.abort = abort;
-        this.context = context4;
+        this.context = context3;
       }
       onHeaders(statusCode, rawHeaders, resume, statusMessage) {
-        const { callback, opaque, abort, context: context4, responseHeaders, highWaterMark } = this;
+        const { callback, opaque, abort, context: context3, responseHeaders, highWaterMark } = this;
         const headers = responseHeaders === "raw" ? util.parseRawHeaders(rawHeaders) : util.parseHeaders(rawHeaders);
         if (statusCode < 200) {
           if (this.onInfo) {
@@ -9649,7 +9649,7 @@ var require_api_request = __commonJS({
               trailers: this.trailers,
               opaque,
               body,
-              context: context4
+              context: context3
             });
           }
         }
@@ -9769,15 +9769,15 @@ var require_api_stream = __commonJS({
         }
         addSignal(this, signal);
       }
-      onConnect(abort, context4) {
+      onConnect(abort, context3) {
         if (!this.callback) {
           throw new RequestAbortedError();
         }
         this.abort = abort;
-        this.context = context4;
+        this.context = context3;
       }
       onHeaders(statusCode, rawHeaders, resume, statusMessage) {
-        const { factory, opaque, context: context4, callback, responseHeaders } = this;
+        const { factory, opaque, context: context3, callback, responseHeaders } = this;
         const headers = responseHeaders === "raw" ? util.parseRawHeaders(rawHeaders) : util.parseHeaders(rawHeaders);
         if (statusCode < 200) {
           if (this.onInfo) {
@@ -9805,7 +9805,7 @@ var require_api_stream = __commonJS({
             statusCode,
             headers,
             opaque,
-            context: context4
+            context: context3
           });
           if (!res || typeof res.write !== "function" || typeof res.end !== "function" || typeof res.on !== "function") {
             throw new InvalidReturnValueError("expected Writable");
@@ -9997,17 +9997,17 @@ var require_api_pipeline = __commonJS({
         this.res = null;
         addSignal(this, signal);
       }
-      onConnect(abort, context4) {
+      onConnect(abort, context3) {
         const { ret, res } = this;
         assert2(!res, "pipeline cannot be retried");
         if (ret.destroyed) {
           throw new RequestAbortedError();
         }
         this.abort = abort;
-        this.context = context4;
+        this.context = context3;
       }
       onHeaders(statusCode, rawHeaders, resume) {
-        const { opaque, handler: handler2, context: context4 } = this;
+        const { opaque, handler: handler2, context: context3 } = this;
         if (statusCode < 200) {
           if (this.onInfo) {
             const headers = this.responseHeaders === "raw" ? util.parseRawHeaders(rawHeaders) : util.parseHeaders(rawHeaders);
@@ -10025,7 +10025,7 @@ var require_api_pipeline = __commonJS({
             headers,
             opaque,
             body: this.res,
-            context: context4
+            context: context3
           });
         } catch (err) {
           this.res.on("error", util.nop);
@@ -10109,7 +10109,7 @@ var require_api_upgrade = __commonJS({
         this.context = null;
         addSignal(this, signal);
       }
-      onConnect(abort, context4) {
+      onConnect(abort, context3) {
         if (!this.callback) {
           throw new RequestAbortedError();
         }
@@ -10120,7 +10120,7 @@ var require_api_upgrade = __commonJS({
         throw new SocketError("bad upgrade", null);
       }
       onUpgrade(statusCode, rawHeaders, socket) {
-        const { callback, opaque, context: context4 } = this;
+        const { callback, opaque, context: context3 } = this;
         assert2.strictEqual(statusCode, 101);
         removeSignal(this);
         this.callback = null;
@@ -10129,7 +10129,7 @@ var require_api_upgrade = __commonJS({
           headers,
           socket,
           opaque,
-          context: context4
+          context: context3
         });
       }
       onError(err) {
@@ -10197,18 +10197,18 @@ var require_api_connect = __commonJS({
         this.abort = null;
         addSignal(this, signal);
       }
-      onConnect(abort, context4) {
+      onConnect(abort, context3) {
         if (!this.callback) {
           throw new RequestAbortedError();
         }
         this.abort = abort;
-        this.context = context4;
+        this.context = context3;
       }
       onHeaders() {
         throw new SocketError("bad connect", null);
       }
       onUpgrade(statusCode, rawHeaders, socket) {
-        const { callback, opaque, context: context4 } = this;
+        const { callback, opaque, context: context3 } = this;
         removeSignal(this);
         this.callback = null;
         let headers = rawHeaders;
@@ -10220,7 +10220,7 @@ var require_api_connect = __commonJS({
           headers,
           socket,
           opaque,
-          context: context4
+          context: context3
         });
       }
       onError(err) {
@@ -10398,20 +10398,20 @@ var require_mock_utils = __commonJS({
       }
       return true;
     }
-    function safeUrl(path2) {
-      if (typeof path2 !== "string") {
-        return path2;
+    function safeUrl(path) {
+      if (typeof path !== "string") {
+        return path;
       }
-      const pathSegments = path2.split("?");
+      const pathSegments = path.split("?");
       if (pathSegments.length !== 2) {
-        return path2;
+        return path;
       }
       const qp = new URLSearchParams(pathSegments.pop());
       qp.sort();
       return [...pathSegments, qp.toString()].join("?");
     }
-    function matchKey(mockDispatch2, { path: path2, method, body, headers }) {
-      const pathMatch = matchValue(mockDispatch2.path, path2);
+    function matchKey(mockDispatch2, { path, method, body, headers }) {
+      const pathMatch = matchValue(mockDispatch2.path, path);
       const methodMatch = matchValue(mockDispatch2.method, method);
       const bodyMatch = typeof mockDispatch2.body !== "undefined" ? matchValue(mockDispatch2.body, body) : true;
       const headersMatch = matchHeaders(mockDispatch2, headers);
@@ -10429,7 +10429,7 @@ var require_mock_utils = __commonJS({
     function getMockDispatch(mockDispatches, key) {
       const basePath = key.query ? buildURL(key.path, key.query) : key.path;
       const resolvedPath = typeof basePath === "string" ? safeUrl(basePath) : basePath;
-      let matchedMockDispatches = mockDispatches.filter(({ consumed }) => !consumed).filter(({ path: path2 }) => matchValue(safeUrl(path2), resolvedPath));
+      let matchedMockDispatches = mockDispatches.filter(({ consumed }) => !consumed).filter(({ path }) => matchValue(safeUrl(path), resolvedPath));
       if (matchedMockDispatches.length === 0) {
         throw new MockNotMatchedError(`Mock dispatch not matched for path '${resolvedPath}'`);
       }
@@ -10466,9 +10466,9 @@ var require_mock_utils = __commonJS({
       }
     }
     function buildKey(opts) {
-      const { path: path2, method, body, headers, query } = opts;
+      const { path, method, body, headers, query } = opts;
       return {
-        path: path2,
+        path,
         method,
         body,
         headers,
@@ -10917,10 +10917,10 @@ var require_pending_interceptors_formatter = __commonJS({
       }
       format(pendingInterceptors) {
         const withPrettyHeaders = pendingInterceptors.map(
-          ({ method, path: path2, data: { statusCode }, persist, times, timesInvoked, origin }) => ({
+          ({ method, path, data: { statusCode }, persist, times, timesInvoked, origin }) => ({
             Method: method,
             Origin: origin,
-            Path: path2,
+            Path: path,
             "Status code": statusCode,
             Persistent: persist ? "\u2705" : "\u274C",
             Invocations: timesInvoked,
@@ -15541,8 +15541,8 @@ var require_util6 = __commonJS({
         }
       }
     }
-    function validateCookiePath(path2) {
-      for (const char of path2) {
+    function validateCookiePath(path) {
+      for (const char of path) {
         const code = char.charCodeAt(0);
         if (code < 33 || char === ";") {
           throw new Error("Invalid cookie path");
@@ -17222,11 +17222,11 @@ var require_undici = __commonJS({
           if (typeof opts.path !== "string") {
             throw new InvalidArgumentError("invalid opts.path");
           }
-          let path2 = opts.path;
+          let path = opts.path;
           if (!opts.path.startsWith("/")) {
-            path2 = `/${path2}`;
+            path = `/${path}`;
           }
-          url2 = new URL(util.parseOrigin(url2).origin + path2);
+          url2 = new URL(util.parseOrigin(url2).origin + path);
         } else {
           if (!opts) {
             opts = typeof url2 === "object" ? url2 : {};
@@ -17598,12 +17598,12 @@ var require_lib = __commonJS({
             throw new Error("Client has already been disposed.");
           }
           const parsedUrl = new URL(requestUrl);
-          let info6 = this._prepareRequest(verb, parsedUrl, headers);
+          let info5 = this._prepareRequest(verb, parsedUrl, headers);
           const maxTries = this._allowRetries && RetryableHttpVerbs.includes(verb) ? this._maxRetries + 1 : 1;
           let numTries = 0;
           let response;
           do {
-            response = yield this.requestRaw(info6, data);
+            response = yield this.requestRaw(info5, data);
             if (response && response.message && response.message.statusCode === HttpCodes.Unauthorized) {
               let authenticationHandler;
               for (const handler2 of this.handlers) {
@@ -17613,7 +17613,7 @@ var require_lib = __commonJS({
                 }
               }
               if (authenticationHandler) {
-                return authenticationHandler.handleAuthentication(this, info6, data);
+                return authenticationHandler.handleAuthentication(this, info5, data);
               } else {
                 return response;
               }
@@ -17636,8 +17636,8 @@ var require_lib = __commonJS({
                   }
                 }
               }
-              info6 = this._prepareRequest(verb, parsedRedirectUrl, headers);
-              response = yield this.requestRaw(info6, data);
+              info5 = this._prepareRequest(verb, parsedRedirectUrl, headers);
+              response = yield this.requestRaw(info5, data);
               redirectsRemaining--;
             }
             if (!response.message.statusCode || !HttpResponseRetryCodes.includes(response.message.statusCode)) {
@@ -17666,7 +17666,7 @@ var require_lib = __commonJS({
        * @param info
        * @param data
        */
-      requestRaw(info6, data) {
+      requestRaw(info5, data) {
         return __awaiter(this, void 0, void 0, function* () {
           return new Promise((resolve, reject) => {
             function callbackForResult(err, res) {
@@ -17678,7 +17678,7 @@ var require_lib = __commonJS({
                 resolve(res);
               }
             }
-            this.requestRawWithCallback(info6, data, callbackForResult);
+            this.requestRawWithCallback(info5, data, callbackForResult);
           });
         });
       }
@@ -17688,12 +17688,12 @@ var require_lib = __commonJS({
        * @param data
        * @param onResult
        */
-      requestRawWithCallback(info6, data, onResult) {
+      requestRawWithCallback(info5, data, onResult) {
         if (typeof data === "string") {
-          if (!info6.options.headers) {
-            info6.options.headers = {};
+          if (!info5.options.headers) {
+            info5.options.headers = {};
           }
-          info6.options.headers["Content-Length"] = Buffer.byteLength(data, "utf8");
+          info5.options.headers["Content-Length"] = Buffer.byteLength(data, "utf8");
         }
         let callbackCalled = false;
         function handleResult(err, res) {
@@ -17702,7 +17702,7 @@ var require_lib = __commonJS({
             onResult(err, res);
           }
         }
-        const req = info6.httpModule.request(info6.options, (msg) => {
+        const req = info5.httpModule.request(info5.options, (msg) => {
           const res = new HttpClientResponse(msg);
           handleResult(void 0, res);
         });
@@ -17714,7 +17714,7 @@ var require_lib = __commonJS({
           if (socket) {
             socket.end();
           }
-          handleResult(new Error(`Request timeout: ${info6.options.path}`));
+          handleResult(new Error(`Request timeout: ${info5.options.path}`));
         });
         req.on("error", function(err) {
           handleResult(err);
@@ -17750,27 +17750,27 @@ var require_lib = __commonJS({
         return this._getProxyAgentDispatcher(parsedUrl, proxyUrl);
       }
       _prepareRequest(method, requestUrl, headers) {
-        const info6 = {};
-        info6.parsedUrl = requestUrl;
-        const usingSsl = info6.parsedUrl.protocol === "https:";
-        info6.httpModule = usingSsl ? https : http;
+        const info5 = {};
+        info5.parsedUrl = requestUrl;
+        const usingSsl = info5.parsedUrl.protocol === "https:";
+        info5.httpModule = usingSsl ? https : http;
         const defaultPort = usingSsl ? 443 : 80;
-        info6.options = {};
-        info6.options.host = info6.parsedUrl.hostname;
-        info6.options.port = info6.parsedUrl.port ? parseInt(info6.parsedUrl.port) : defaultPort;
-        info6.options.path = (info6.parsedUrl.pathname || "") + (info6.parsedUrl.search || "");
-        info6.options.method = method;
-        info6.options.headers = this._mergeHeaders(headers);
+        info5.options = {};
+        info5.options.host = info5.parsedUrl.hostname;
+        info5.options.port = info5.parsedUrl.port ? parseInt(info5.parsedUrl.port) : defaultPort;
+        info5.options.path = (info5.parsedUrl.pathname || "") + (info5.parsedUrl.search || "");
+        info5.options.method = method;
+        info5.options.headers = this._mergeHeaders(headers);
         if (this.userAgent != null) {
-          info6.options.headers["user-agent"] = this.userAgent;
+          info5.options.headers["user-agent"] = this.userAgent;
         }
-        info6.options.agent = this._getAgent(info6.parsedUrl);
+        info5.options.agent = this._getAgent(info5.parsedUrl);
         if (this.handlers) {
           for (const handler2 of this.handlers) {
-            handler2.prepareRequest(info6.options);
+            handler2.prepareRequest(info5.options);
           }
         }
-        return info6;
+        return info5;
       }
       _mergeHeaders(headers) {
         if (this.requestOptions && this.requestOptions.headers) {
@@ -18449,7 +18449,7 @@ var require_path_utils = __commonJS({
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.toPlatformPath = exports2.toWin32Path = exports2.toPosixPath = void 0;
-    var path2 = __importStar(require("path"));
+    var path = __importStar(require("path"));
     function toPosixPath(pth) {
       return pth.replace(/[\\]/g, "/");
     }
@@ -18459,7 +18459,7 @@ var require_path_utils = __commonJS({
     }
     exports2.toWin32Path = toWin32Path;
     function toPlatformPath(pth) {
-      return pth.replace(/[/\\]/g, path2.sep);
+      return pth.replace(/[/\\]/g, path.sep);
     }
     exports2.toPlatformPath = toPlatformPath;
   }
@@ -18522,12 +18522,12 @@ var require_io_util = __commonJS({
     var _a3;
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.getCmdPath = exports2.tryGetExecutablePath = exports2.isRooted = exports2.isDirectory = exports2.exists = exports2.READONLY = exports2.UV_FS_O_EXLOCK = exports2.IS_WINDOWS = exports2.unlink = exports2.symlink = exports2.stat = exports2.rmdir = exports2.rm = exports2.rename = exports2.readlink = exports2.readdir = exports2.open = exports2.mkdir = exports2.lstat = exports2.copyFile = exports2.chmod = void 0;
-    var fs2 = __importStar(require("fs"));
-    var path2 = __importStar(require("path"));
-    _a3 = fs2.promises, exports2.chmod = _a3.chmod, exports2.copyFile = _a3.copyFile, exports2.lstat = _a3.lstat, exports2.mkdir = _a3.mkdir, exports2.open = _a3.open, exports2.readdir = _a3.readdir, exports2.readlink = _a3.readlink, exports2.rename = _a3.rename, exports2.rm = _a3.rm, exports2.rmdir = _a3.rmdir, exports2.stat = _a3.stat, exports2.symlink = _a3.symlink, exports2.unlink = _a3.unlink;
+    var fs = __importStar(require("fs"));
+    var path = __importStar(require("path"));
+    _a3 = fs.promises, exports2.chmod = _a3.chmod, exports2.copyFile = _a3.copyFile, exports2.lstat = _a3.lstat, exports2.mkdir = _a3.mkdir, exports2.open = _a3.open, exports2.readdir = _a3.readdir, exports2.readlink = _a3.readlink, exports2.rename = _a3.rename, exports2.rm = _a3.rm, exports2.rmdir = _a3.rmdir, exports2.stat = _a3.stat, exports2.symlink = _a3.symlink, exports2.unlink = _a3.unlink;
     exports2.IS_WINDOWS = process.platform === "win32";
     exports2.UV_FS_O_EXLOCK = 268435456;
-    exports2.READONLY = fs2.constants.O_RDONLY;
+    exports2.READONLY = fs.constants.O_RDONLY;
     function exists(fsPath) {
       return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -18572,7 +18572,7 @@ var require_io_util = __commonJS({
         }
         if (stats && stats.isFile()) {
           if (exports2.IS_WINDOWS) {
-            const upperExt = path2.extname(filePath).toUpperCase();
+            const upperExt = path.extname(filePath).toUpperCase();
             if (extensions.some((validExt) => validExt.toUpperCase() === upperExt)) {
               return filePath;
             }
@@ -18596,11 +18596,11 @@ var require_io_util = __commonJS({
           if (stats && stats.isFile()) {
             if (exports2.IS_WINDOWS) {
               try {
-                const directory = path2.dirname(filePath);
-                const upperName = path2.basename(filePath).toUpperCase();
+                const directory = path.dirname(filePath);
+                const upperName = path.basename(filePath).toUpperCase();
                 for (const actualName of yield exports2.readdir(directory)) {
                   if (upperName === actualName.toUpperCase()) {
-                    filePath = path2.join(directory, actualName);
+                    filePath = path.join(directory, actualName);
                     break;
                   }
                 }
@@ -18695,7 +18695,7 @@ var require_io = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.findInPath = exports2.which = exports2.mkdirP = exports2.rmRF = exports2.mv = exports2.cp = void 0;
     var assert_1 = require("assert");
-    var path2 = __importStar(require("path"));
+    var path = __importStar(require("path"));
     var ioUtil = __importStar(require_io_util());
     function cp(source, dest, options = {}) {
       return __awaiter(this, void 0, void 0, function* () {
@@ -18704,7 +18704,7 @@ var require_io = __commonJS({
         if (destStat && destStat.isFile() && !force) {
           return;
         }
-        const newDest = destStat && destStat.isDirectory() && copySourceDirectory ? path2.join(dest, path2.basename(source)) : dest;
+        const newDest = destStat && destStat.isDirectory() && copySourceDirectory ? path.join(dest, path.basename(source)) : dest;
         if (!(yield ioUtil.exists(source))) {
           throw new Error(`no such file or directory: ${source}`);
         }
@@ -18716,7 +18716,7 @@ var require_io = __commonJS({
             yield cpDirRecursive(source, newDest, 0, force);
           }
         } else {
-          if (path2.relative(source, newDest) === "") {
+          if (path.relative(source, newDest) === "") {
             throw new Error(`'${newDest}' and '${source}' are the same file`);
           }
           yield copyFile(source, newDest, force);
@@ -18729,7 +18729,7 @@ var require_io = __commonJS({
         if (yield ioUtil.exists(dest)) {
           let destExists = true;
           if (yield ioUtil.isDirectory(dest)) {
-            dest = path2.join(dest, path2.basename(source));
+            dest = path.join(dest, path.basename(source));
             destExists = yield ioUtil.exists(dest);
           }
           if (destExists) {
@@ -18740,7 +18740,7 @@ var require_io = __commonJS({
             }
           }
         }
-        yield mkdirP(path2.dirname(dest));
+        yield mkdirP(path.dirname(dest));
         yield ioUtil.rename(source, dest);
       });
     }
@@ -18803,7 +18803,7 @@ var require_io = __commonJS({
         }
         const extensions = [];
         if (ioUtil.IS_WINDOWS && process.env["PATHEXT"]) {
-          for (const extension of process.env["PATHEXT"].split(path2.delimiter)) {
+          for (const extension of process.env["PATHEXT"].split(path.delimiter)) {
             if (extension) {
               extensions.push(extension);
             }
@@ -18816,12 +18816,12 @@ var require_io = __commonJS({
           }
           return [];
         }
-        if (tool.includes(path2.sep)) {
+        if (tool.includes(path.sep)) {
           return [];
         }
         const directories = [];
         if (process.env.PATH) {
-          for (const p of process.env.PATH.split(path2.delimiter)) {
+          for (const p of process.env.PATH.split(path.delimiter)) {
             if (p) {
               directories.push(p);
             }
@@ -18829,7 +18829,7 @@ var require_io = __commonJS({
         }
         const matches = [];
         for (const directory of directories) {
-          const filePath = yield ioUtil.tryGetExecutablePath(path2.join(directory, tool), extensions);
+          const filePath = yield ioUtil.tryGetExecutablePath(path.join(directory, tool), extensions);
           if (filePath) {
             matches.push(filePath);
           }
@@ -18945,7 +18945,7 @@ var require_toolrunner = __commonJS({
     var os = __importStar(require("os"));
     var events = __importStar(require("events"));
     var child = __importStar(require("child_process"));
-    var path2 = __importStar(require("path"));
+    var path = __importStar(require("path"));
     var io = __importStar(require_io());
     var ioUtil = __importStar(require_io_util());
     var timers_1 = require("timers");
@@ -19160,7 +19160,7 @@ var require_toolrunner = __commonJS({
       exec() {
         return __awaiter(this, void 0, void 0, function* () {
           if (!ioUtil.isRooted(this.toolPath) && (this.toolPath.includes("/") || IS_WINDOWS && this.toolPath.includes("\\"))) {
-            this.toolPath = path2.resolve(process.cwd(), this.options.cwd || process.cwd(), this.toolPath);
+            this.toolPath = path.resolve(process.cwd(), this.options.cwd || process.cwd(), this.toolPath);
           }
           this.toolPath = yield io.which(this.toolPath, true);
           return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
@@ -19660,7 +19660,7 @@ var require_core = __commonJS({
     var file_command_1 = require_file_command();
     var utils_1 = require_utils();
     var os = __importStar(require("os"));
-    var path2 = __importStar(require("path"));
+    var path = __importStar(require("path"));
     var oidc_utils_1 = require_oidc_utils();
     var ExitCode;
     (function(ExitCode2) {
@@ -19688,7 +19688,7 @@ var require_core = __commonJS({
       } else {
         (0, command_1.issueCommand)("add-path", {}, inputPath);
       }
-      process.env["PATH"] = `${inputPath}${path2.delimiter}${process.env["PATH"]}`;
+      process.env["PATH"] = `${inputPath}${path.delimiter}${process.env["PATH"]}`;
     }
     exports2.addPath = addPath;
     function getInput2(name, options) {
@@ -19752,18 +19752,18 @@ Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
       (0, command_1.issueCommand)("error", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
     exports2.error = error52;
-    function warning3(message, properties = {}) {
+    function warning2(message, properties = {}) {
       (0, command_1.issueCommand)("warning", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
-    exports2.warning = warning3;
+    exports2.warning = warning2;
     function notice(message, properties = {}) {
       (0, command_1.issueCommand)("notice", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
     exports2.notice = notice;
-    function info6(message) {
+    function info5(message) {
       process.stdout.write(message + os.EOL);
     }
-    exports2.info = info6;
+    exports2.info = info5;
     function startGroup(name) {
       (0, command_1.issue)("group", name);
     }
@@ -19844,8 +19844,8 @@ var require_context = __commonJS({
           if ((0, fs_1.existsSync)(process.env.GITHUB_EVENT_PATH)) {
             this.payload = JSON.parse((0, fs_1.readFileSync)(process.env.GITHUB_EVENT_PATH, { encoding: "utf8" }));
           } else {
-            const path2 = process.env.GITHUB_EVENT_PATH;
-            process.stdout.write(`GITHUB_EVENT_PATH ${path2} does not exist${os_1.EOL}`);
+            const path = process.env.GITHUB_EVENT_PATH;
+            process.stdout.write(`GITHUB_EVENT_PATH ${path} does not exist${os_1.EOL}`);
           }
         }
         this.eventName = process.env.GITHUB_EVENT_NAME;
@@ -20359,8 +20359,8 @@ function isDefined(value) {
 function isKeyOperator(operator) {
   return operator === ";" || operator === "&" || operator === "?";
 }
-function getValues(context4, operator, key, modifier) {
-  var value = context4[key], result = [];
+function getValues(context3, operator, key, modifier) {
+  var value = context3[key], result = [];
   if (isDefined(value) && value !== "") {
     if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
       value = value.toString();
@@ -20424,7 +20424,7 @@ function parseUrl(template) {
     expand: expand.bind(null, template)
   };
 }
-function expand(template, context4) {
+function expand(template, context3) {
   var operators = ["+", "#", ".", "/", ";", "?", "&"];
   template = template.replace(
     /\{([^\{\}]+)\}|([^\{\}]+)/g,
@@ -20438,7 +20438,7 @@ function expand(template, context4) {
         }
         expression.split(/,/g).forEach(function(variable) {
           var tmp = /([^:\*]*)(?::(\d+)|(\*))?/.exec(variable);
-          values.push(getValues(context4, operator, tmp[1], tmp[2] || tmp[3]));
+          values.push(getValues(context3, operator, tmp[1], tmp[2] || tmp[3]));
         });
         if (operator && operator !== "+") {
           var separator = ",";
@@ -25930,8 +25930,8 @@ var require_semver2 = __commonJS({
 });
 
 // src/terraform/index.ts
-var core5 = __toESM(require_core());
-var github3 = __toESM(require_github());
+var core4 = __toESM(require_core());
+var github2 = __toESM(require_github());
 
 // src/resource-changes/contract.ts
 var import_node_crypto = require("crypto");
@@ -26702,10 +26702,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path2) {
-  if (!path2)
+function getElementAtPath(obj, path) {
+  if (!path)
     return obj;
-  return path2.reduce((acc, key) => acc?.[key], obj);
+  return path.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -27114,11 +27114,11 @@ function explicitlyAborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path2, issues) {
+function prefixIssues(path, issues) {
   return issues.map((iss) => {
     var _a3;
     (_a3 = iss).path ?? (_a3.path = []);
-    iss.path.unshift(path2);
+    iss.path.unshift(path);
     return iss;
   });
 }
@@ -27265,16 +27265,16 @@ function flattenError(error52, mapper = (issue2) => issue2.message) {
 }
 function formatError(error52, mapper = (issue2) => issue2.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error53, path2 = []) => {
+  const processError = (error53, path = []) => {
     for (const issue2 of error53.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path2, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path2, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path2, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path, ...issue2.path]);
       } else {
-        const fullpath = [...path2, ...issue2.path];
+        const fullpath = [...path, ...issue2.path];
         if (fullpath.length === 0) {
           fieldErrors._errors.push(mapper(issue2));
         } else {
@@ -27301,17 +27301,17 @@ function formatError(error52, mapper = (issue2) => issue2.message) {
 }
 function treeifyError(error52, mapper = (issue2) => issue2.message) {
   const result = { errors: [] };
-  const processError = (error53, path2 = []) => {
+  const processError = (error53, path = []) => {
     var _a3, _b;
     for (const issue2 of error53.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path2, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path2, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path2, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path, ...issue2.path]);
       } else {
-        const fullpath = [...path2, ...issue2.path];
+        const fullpath = [...path, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -27343,8 +27343,8 @@ function treeifyError(error52, mapper = (issue2) => issue2.message) {
 }
 function toDotPath(_path) {
   const segs = [];
-  const path2 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path2) {
+  const path = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+  for (const seg of path) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -40036,13 +40036,13 @@ function resolveRef(ref, ctx) {
   if (!ref.startsWith("#")) {
     throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
   }
-  const path2 = ref.slice(1).split("/").filter(Boolean);
-  if (path2.length === 0) {
+  const path = ref.slice(1).split("/").filter(Boolean);
+  if (path.length === 0) {
     return ctx.rootSchema;
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path2[0] === defsKey) {
-    const key = path2[1];
+  if (path[0] === defsKey) {
+    const key = path[1];
     if (!key || !ctx.defs[key]) {
       throw new Error(`Reference not found: ${ref}`);
     }
@@ -40619,6 +40619,7 @@ var TEMPLATE_PRICING_INPUTS = Object.freeze({
   Instances: "Instances",
   Iops: "Iops",
   IpAddressCount: "IpAddressCount",
+  IpAddressType: "IpAddressType",
   LaunchType: "LaunchType",
   LifecycleConfiguration: "LifecycleConfiguration",
   LifecycleTransitionToArchive: "LifecycleTransitionToArchive",
@@ -40665,6 +40666,7 @@ var TEMPLATE_PRICING_INPUTS = Object.freeze({
   Size: "Size",
   ScalingConfig: "ScalingConfig",
   ScalingConfiguration: "ScalingConfiguration",
+  Scheme: "Scheme",
   SnapStart: "SnapStart",
   SpotTargetCapacity: "SpotTargetCapacity",
   Storage: "Storage",
@@ -40770,6 +40772,7 @@ var TERRAFORM_COMMON_PRICING_INPUTS = Object.freeze({
   ami: "MachineImage",
   iops: "Iops",
   ip_address_count: "IpAddressCount",
+  ip_address_type: "IpAddressType",
   launch_type: "LaunchType",
   lifecycle_configuration: "LifecycleConfiguration",
   license_model: "LicenseModel",
@@ -40857,6 +40860,8 @@ var TERRAFORM_RESOURCE_PRICING_INPUTS = Object.freeze({
   aws_vpn_connection: { type: "Type" }
 });
 var SPECIALIZED_PRICING_INPUT_NAMES = [
+  "AssignPublicIp",
+  "BlockDeviceMappings",
   "Bucket",
   "MarketType",
   "IntelligentTieringConfigurations",
@@ -40864,6 +40869,7 @@ var SPECIALIZED_PRICING_INPUT_NAMES = [
   "MaxConcurrency",
   "ProvisionedConcurrency",
   "ResourceSpec",
+  "RootVolume",
   "StorageType"
 ];
 var RESOURCE_CHANGE_PRICING_INPUT_NAMES = /* @__PURE__ */ new Set([
@@ -41175,6 +41181,7 @@ var UNSUPPORTED_PRICE_DRIVER_FIELDS = Object.freeze({
   aws_opensearchserverless_collection: ["standby_replicas"],
   "AWS::EC2::Instance": ["CpuOptions"],
   aws_instance: ["cpu_options"],
+  aws_launch_template: ["cpu_options"],
   "AWS::S3::Bucket": ["BucketEncryption", "LifecycleConfiguration", "ReplicationConfiguration"],
   aws_s3_bucket: ["server_side_encryption_configuration", "lifecycle_rule", "replication_configuration"],
   aws_s3_bucket_lifecycle_configuration: ["rule"],
@@ -41214,15 +41221,21 @@ var UNSUPPORTED_PRICE_DRIVER_FIELDS = Object.freeze({
   aws_vpn_connection: ["enable_acceleration"],
   "AWS::SecretsManager::Secret": ["ReplicaRegions"],
   aws_secretsmanager_secret: ["replica"],
-  "AWS::ElasticLoadBalancingV2::LoadBalancer": ["MinimumLoadBalancerCapacity", "Scheme", "IpAddressType"],
-  aws_lb: ["minimum_load_balancer_capacity", "internal", "ip_address_type"],
-  aws_alb: ["minimum_load_balancer_capacity", "internal", "ip_address_type"],
+  "AWS::ElasticLoadBalancingV2::LoadBalancer": ["MinimumLoadBalancerCapacity"],
+  aws_lb: ["minimum_load_balancer_capacity"],
+  aws_alb: ["minimum_load_balancer_capacity"],
   "AWS::Batch::ComputeEnvironment": ["ComputeResources"],
   aws_batch_compute_environment: ["compute_resources"],
   "AWS::KMS::Key": ["KeySpec", "KeyUsage"],
   aws_kms_key: ["customer_master_key_spec", "key_usage"],
   "AWS::Route53::HostedZone": ["VPCs"],
   aws_route53_zone: ["vpc"]
+});
+var PRICE_NEUTRAL_DRIVER_VALUES = Object.freeze({
+  "AWS::RDS::DBInstance": { DatabaseInsightsMode: ["standard"], PerformanceInsightsRetentionPeriod: [7] },
+  aws_db_instance: { database_insights_mode: ["standard"], performance_insights_retention_period: [0, 7] },
+  "AWS::KMS::Key": { KeySpec: ["SYMMETRIC_DEFAULT"], KeyUsage: ["ENCRYPT_DECRYPT"] },
+  aws_kms_key: { customer_master_key_spec: ["SYMMETRIC_DEFAULT"], key_usage: ["ENCRYPT_DECRYPT"] }
 });
 function hasUnsupportedPricingTopology(resourceType, values) {
   const variants = resourceType === "AWS::SageMaker::EndpointConfig" ? values.ProductionVariants : resourceType === "aws_sagemaker_endpoint_configuration" ? values.production_variants : void 0;
@@ -41234,16 +41247,14 @@ function hasUnsupportedPricingTopology(resourceType, values) {
     const object2 = record2(value);
     return object2 ? Object.keys(object2).length > 0 : value !== void 0 && value !== null;
   };
-  if ((UNSUPPORTED_PRICE_DRIVER_FIELDS[resourceType] ?? []).some((field) => hasTopology(values[field]))) return true;
-  if (resourceType === "AWS::EC2::Instance") return hasTopology(values.BlockDeviceMappings);
-  if (resourceType === "aws_instance") {
-    return hasTopology(values.root_block_device) || hasTopology(values.ebs_block_device);
-  }
+  const neutral = PRICE_NEUTRAL_DRIVER_VALUES[resourceType] ?? {};
+  const isPriceDriver = (field) => hasTopology(values[field]) && !(neutral[field] ?? []).includes(values[field]);
+  if ((UNSUPPORTED_PRICE_DRIVER_FIELDS[resourceType] ?? []).some(isPriceDriver)) return true;
   if (resourceType === "AWS::AutoScaling::AutoScalingGroup") {
-    return [values.LaunchTemplate, values.MixedInstancesPolicy, values.LaunchConfigurationName].some(hasTopology);
+    return [values.MixedInstancesPolicy, values.LaunchConfigurationName].some(hasTopology);
   }
   if (resourceType === "aws_autoscaling_group") {
-    return [values.launch_template, values.mixed_instances_policy, values.launch_configuration].some(hasTopology);
+    return [values.mixed_instances_policy, values.launch_configuration].some(hasTopology);
   }
   return false;
 }
@@ -41286,6 +41297,60 @@ function projectEc2FleetTargetCapacity(projections, value, source, sourcePath) {
     setProjection(projections, canonical, source, specification[key], [...sourcePath, key]);
   }
 }
+var SOURCE_DERIVED_TERRAFORM_ATTRIBUTES = Object.freeze({
+  aws_db_instance: ["snapshot_identifier", "replicate_source_db", "restore_to_point_in_time", "s3_import"],
+  aws_rds_cluster: ["snapshot_identifier", "restore_to_point_in_time", "s3_import", "replication_source_identifier"],
+  aws_ebs_volume: ["snapshot_id"],
+  aws_instance: ["launch_template"],
+  aws_elasticache_cluster: ["snapshot_name", "snapshot_arns"],
+  aws_elasticache_replication_group: ["snapshot_name", "snapshot_arns"],
+  aws_dynamodb_table: ["restore_source_name", "restore_source_table_arn", "import_table"]
+});
+var IMAGE_DERIVED_TERRAFORM_ATTRIBUTES = Object.freeze({
+  aws_instance: ["root_block_device"]
+});
+var ROOT_DEVICE_NAMES = /* @__PURE__ */ new Set(["/dev/xvda", "/dev/sda1"]);
+var VOLUME_FIELDS = [
+  ["VolumeSize", "VolumeSize", "volume_size"],
+  ["VolumeType", "VolumeType", "volume_type"],
+  ["Iops", "Iops", "iops"],
+  ["Throughput", "Throughput", "throughput"]
+];
+function volume(block, source) {
+  const index = source === "template" ? 1 : 2;
+  const fields = Object.fromEntries(
+    VOLUME_FIELDS.map((field) => [field[0], block[field[index]]]).filter(
+      ([, value]) => value !== void 0 && value !== null
+    )
+  );
+  const deleteOnTermination = block[source === "template" ? "DeleteOnTermination" : "delete_on_termination"];
+  if (deleteOnTermination === false || deleteOnTermination === "false")
+    return { ...fields, DeleteOnTermination: false };
+  return containsUnresolvedTemplateExpression(deleteOnTermination) ? { ...fields, DeleteOnTermination: deleteOnTermination } : fields;
+}
+function setVolumes(projections, source, devices) {
+  const data = [];
+  for (const { deviceName, volume: deviceVolume } of devices) {
+    if (ROOT_DEVICE_NAMES.has(deviceName)) {
+      setProjection(projections, "RootVolume", source, deviceVolume);
+    } else {
+      data.push(
+        deviceVolume === UNRESOLVED_TEMPLATE_PRICING_INPUT ? deviceVolume : { ...deviceName == null ? {} : { DeviceName: deviceName }, ...deviceVolume }
+      );
+    }
+  }
+  if (data.length > 0) setProjection(projections, "BlockDeviceMappings", source, data);
+}
+function projectImage(projections, source, image) {
+  if (image?.operatingSystem) setProjection(projections, "OperatingSystem", source, image.operatingSystem);
+  if (image?.machineImage) setProjection(projections, "MachineImage", source, image.machineImage);
+}
+var booleanValue = (value, ifTrue, ifFalse) => value === true || value === "true" ? ifTrue : value === false || value === "false" ? ifFalse : value;
+function primaryInterface(interfaces, indexField) {
+  if (!Array.isArray(interfaces)) return void 0;
+  const records = interfaces.map(record2).filter((entry) => entry !== void 0);
+  return records.find((entry) => String(entry[indexField] ?? "0") === "0");
+}
 var AURORA_ENGINES = /* @__PURE__ */ new Set(["aurora", "aurora-mysql", "aurora-postgresql"]);
 var AURORA_STANDARD_STORAGE_TYPE = "aurora";
 function isAuroraEngine(engine) {
@@ -41301,6 +41366,10 @@ function projectTerraformPricingInputs(resourceType, values, options = {}) {
   for (const [source, value] of Object.entries(values)) {
     const name = resourceAliases?.[source] ?? TERRAFORM_COMMON_PRICING_INPUTS[source];
     if (name) setProjection(projections, name, source, value);
+  }
+  if (["aws_lb", "aws_alb", "aws_elb"].includes(resourceType) && "internal" in values) {
+    const internal = values.internal;
+    setProjection(projections, "Scheme", "internal", booleanValue(internal, "internal", "internet-facing"));
   }
   if ([
     "aws_s3_bucket_accelerate_configuration",
@@ -41438,6 +41507,97 @@ function projectTerraformPricingInputs(resourceType, values, options = {}) {
   }
   if (resourceType === "aws_efs_file_system") {
     projectLifecyclePolicies(projections, values.lifecycle_policy, "lifecycle_policy");
+  }
+  if (resourceType === "aws_instance") {
+    if ("root_block_device" in values) {
+      const root = firstRecord(values.root_block_device);
+      setProjection(
+        projections,
+        "RootVolume",
+        "root_block_device",
+        root ? volume(root, "terraform") : values.root_block_device
+      );
+    }
+    if (Array.isArray(values.ebs_block_device) && values.ebs_block_device.length > 0) {
+      setProjection(
+        projections,
+        "BlockDeviceMappings",
+        "ebs_block_device",
+        values.ebs_block_device.map((block) => {
+          const device = record2(block) ?? {};
+          return {
+            ...device.device_name == null ? {} : { DeviceName: device.device_name },
+            ...volume(device, "terraform")
+          };
+        })
+      );
+    } else if ("ebs_block_device" in values && !Array.isArray(values.ebs_block_device)) {
+      setProjection(projections, "BlockDeviceMappings", "ebs_block_device", values.ebs_block_device);
+    }
+    projectImage(projections, "ami", options.image);
+    if ("associate_public_ip_address" in values) {
+      setProjection(
+        projections,
+        "AssignPublicIp",
+        "associate_public_ip_address",
+        booleanValue(values.associate_public_ip_address, "ENABLED", "DISABLED")
+      );
+    }
+  }
+  if (resourceType === "aws_launch_template") {
+    setProjection(projections, "MachineImage", "image_id", values.image_id);
+    setProjection(projections, "Tenancy", "placement", firstRecord(values.placement)?.tenancy, [
+      "placement",
+      0,
+      "tenancy"
+    ]);
+    setProjection(
+      projections,
+      "MarketType",
+      "instance_market_options",
+      firstRecord(values.instance_market_options)?.market_type,
+      ["instance_market_options", 0, "market_type"]
+    );
+    setProjection(projections, "Monitoring", "monitoring", firstRecord(values.monitoring)?.enabled, [
+      "monitoring",
+      0,
+      "enabled"
+    ]);
+    if (Array.isArray(values.block_device_mappings)) {
+      setVolumes(
+        projections,
+        "block_device_mappings",
+        values.block_device_mappings.flatMap((block) => {
+          const ebs = firstRecord(record2(block)?.ebs);
+          return ebs ? [{ deviceName: record2(block)?.device_name, volume: volume(ebs, "terraform") }] : [];
+        })
+      );
+    } else if (values.block_device_mappings !== void 0) {
+      setProjection(projections, "RootVolume", "block_device_mappings", values.block_device_mappings);
+    }
+    projectImage(projections, "image_id", options.image);
+    const primary = primaryInterface(values.network_interfaces, "device_index");
+    if (primary && primary.associate_public_ip_address !== void 0 && primary.associate_public_ip_address !== null) {
+      setProjection(
+        projections,
+        "AssignPublicIp",
+        "network_interfaces",
+        booleanValue(primary.associate_public_ip_address, "ENABLED", "DISABLED")
+      );
+    }
+  }
+  if (resourceType === "aws_ecs_service") {
+    const network = firstRecord(values.network_configuration);
+    if (network && "assign_public_ip" in network) {
+      const assign = network.assign_public_ip;
+      setProjection(
+        projections,
+        "AssignPublicIp",
+        "network_configuration",
+        booleanValue(assign, "ENABLED", "DISABLED"),
+        ["network_configuration", 0, "assign_public_ip"]
+      );
+    }
   }
   if (resourceType === "aws_ecs_task_definition") {
     const runtime = firstRecord(values.runtime_platform);
@@ -41670,38 +41830,16 @@ var resourceChangeSchema = external_exports.object({
   old: pricingInputSideSchema,
   new: pricingInputSideSchema
 }).strict();
-function assumptionSnapshotSchema(fence) {
-  return external_exports.object({
-    fence: external_exports.literal(fence),
-    revision: boundedString.optional()
-  }).strict();
-}
 var resourceChangeSetSchema = external_exports.object({
   schemaVersion: external_exports.literal(RESOURCE_CHANGE_SCHEMA_VERSION),
   source: external_exports.enum(["terraform", "cloudformation", "cdk"]),
   region: external_exports.string().refine((region) => cloudBurnPricingRegions.has(region), "Region has no CloudBurn pricing mapping"),
-  assumptionSnapshots: external_exports.object({
-    old: assumptionSnapshotSchema("cloudburn-usage-assumptions-previous"),
-    new: assumptionSnapshotSchema("cloudburn-usage-assumptions-current")
-  }).strict(),
   changes: external_exports.array(resourceChangeSchema).max(MAX_RESOURCE_CHANGES),
   integrity: external_exports.object({
     algorithm: external_exports.literal("sha256"),
     digest: external_exports.string().regex(/^[a-f0-9]{64}$/)
   }).strict()
 }).strict();
-function createAssumptionSnapshots(beforeRevision, afterRevision) {
-  return {
-    old: {
-      fence: "cloudburn-usage-assumptions-previous",
-      ...beforeRevision ? { revision: beforeRevision } : {}
-    },
-    new: {
-      fence: "cloudburn-usage-assumptions-current",
-      ...afterRevision ? { revision: afterRevision } : {}
-    }
-  };
-}
 function sortKeysDeep(value) {
   if (Array.isArray(value)) {
     return value.map(sortKeysDeep);
@@ -41899,6 +42037,19 @@ var configurationModuleSchema = external_exports.lazy(
     module_calls: external_exports.record(external_exports.string(), external_exports.object({ module: configurationModuleSchema.optional() })).optional()
   })
 );
+var stateModuleSchema = external_exports.lazy(
+  () => external_exports.object({
+    resources: external_exports.array(
+      external_exports.object({
+        address: external_exports.string(),
+        mode: external_exports.string().optional(),
+        type: external_exports.string().optional(),
+        values: external_exports.record(external_exports.string(), external_exports.json()).nullable().optional()
+      })
+    ).optional(),
+    child_modules: external_exports.array(stateModuleSchema).optional()
+  })
+);
 var planfileSchema = external_exports.object({
   format_version: external_exports.string().refine(
     (v) => {
@@ -41935,6 +42086,8 @@ var planfileSchema = external_exports.object({
       })
     })
   ).optional(),
+  // Only used to read data sources resolved during planning; a shape surprise must not reject the plan.
+  prior_state: external_exports.object({ values: external_exports.object({ root_module: stateModuleSchema.optional() }).optional() }).optional().catch(void 0),
   configuration: external_exports.object({
     provider_config: external_exports.record(
       external_exports.string(),
@@ -41976,6 +42129,50 @@ function parsePlanfileJSON(json2) {
   return parsed;
 }
 
+// src/resource-changes/embedded-inputs.ts
+var TASK_DEFINITION_INPUTS = ["Cpu", "Memory", "CpuArchitecture", "OperatingSystemFamily", "EphemeralStorageSize"];
+var TASK_DEFINITION_EMBEDDING = {
+  referenceInput: "TaskDefinition",
+  names: TASK_DEFINITION_INPUTS
+};
+var LAUNCH_TEMPLATE_INPUTS = [
+  "InstanceType",
+  "MachineImage",
+  "OperatingSystem",
+  "Tenancy",
+  "MarketType",
+  "Monitoring",
+  "AssignPublicIp",
+  "RootVolume",
+  "BlockDeviceMappings"
+];
+var LAUNCH_TEMPLATE_EMBEDDING = {
+  referenceInput: "LaunchTemplate",
+  names: LAUNCH_TEMPLATE_INPUTS
+};
+function embedResolvedInputs(side, resolved, { referenceInput, names }) {
+  if (side.state !== "known" && side.state !== "partial") return side;
+  const inputs = { ...side.inputs };
+  delete inputs[referenceInput];
+  const unknowns = (side.state === "partial" ? side.unknowns : []).filter(
+    ({ path }) => path !== referenceInput
+  );
+  if (resolved.state === "unknown") {
+    unknowns.push(...names.map((path) => ({ path, reason: resolved.reason })));
+  } else if (resolved.state === "known" || resolved.state === "partial") {
+    for (const name of names) {
+      if (resolved.inputs[name] !== void 0) inputs[name] = resolved.inputs[name];
+    }
+    if (resolved.state === "partial") {
+      unknowns.push(...resolved.unknowns.filter(({ path }) => names.includes(path)));
+    }
+  }
+  if (unknowns.length === 0) return { state: "known", inputs };
+  if (Object.keys(inputs).length === 0) return { state: "unknown", reason: unknowns[0].reason };
+  return { state: "partial", inputs, unknowns };
+}
+var isPublicImagePath = (value) => typeof value === "string" && value.startsWith("/aws/service/");
+
 // src/resource-changes/terraform.ts
 var CHANGE_KINDS = {
   create: "add",
@@ -41992,9 +42189,9 @@ function containsTrue(value) {
   if (Array.isArray(value)) return value.some(containsTrue);
   return value !== null && typeof value === "object" ? Object.values(value).some(containsTrue) : false;
 }
-function maskedAtPath(mask, path2) {
+function maskedAtPath(mask, path) {
   let current = mask;
-  for (const segment of path2) {
+  for (const segment of path) {
     if (current === true) return true;
     if (current === false || current == null || typeof current !== "object") return false;
     current = current[segment];
@@ -42084,30 +42281,70 @@ function validateAwsProviderRegions(plan, requestedRegion) {
 }
 var MODULE_PREFIX = /^(?:module\.[^.[]+(?:\[(?:"(?:[^"\\]|\\.)*"|\d+)\])?\.)*/;
 var INSTANCE_INDEX = /\[(?:"(?:[^"\\]|\\.)*"|\d+)\]$/;
-var CLUSTER_REFERENCE = /^aws_rds_cluster\.([^.[\]]+)((?:\[(?:"(?:[^"\\]|\\.)*"|\d+)\])?)/;
-function configuredClusterIdentifierReferences(plan, instanceAddress) {
+function resourceConfiguration(plan, instanceAddress) {
   const modulePrefix = MODULE_PREFIX.exec(instanceAddress)?.[0] ?? "";
   const resourceAddress2 = instanceAddress.slice(modulePrefix.length).replace(INSTANCE_INDEX, "");
   let module2 = plan.configuration?.root_module;
   for (const [, name] of modulePrefix.matchAll(/module\.([^.[]+)(?:\[[^\]]*\])?\./g)) {
     module2 = module2?.module_calls?.[name]?.module;
   }
-  const expression = module2?.resources?.find((resource) => resource.address === resourceAddress2)?.expressions?.cluster_identifier;
+  return module2?.resources?.find((resource) => resource.address === resourceAddress2);
+}
+function configuredReferences(plan, instanceAddress, attribute, block) {
+  const expressions = resourceConfiguration(plan, instanceAddress)?.expressions;
+  const container = block ? expressions?.[block]?.[0] : expressions;
+  const expression = container?.[attribute];
   const references = expression?.references;
   return Array.isArray(references) ? references.filter((reference) => typeof reference === "string") : [];
 }
-function referencedClusterChanges(plan, instance, clusters) {
-  const matches = configuredClusterIdentifierReferences(plan, instance.address).map((reference) => CLUSTER_REFERENCE.exec(reference)).filter((match) => match !== null);
+function pruneUnconfigured(mask, configured) {
+  if (mask === null || typeof mask !== "object" || Array.isArray(mask)) return mask;
+  const pruned = {};
+  for (const [attribute, nested] of Object.entries(mask)) {
+    const expression = configured[attribute];
+    if (expression === void 0) {
+      if (nested !== true) pruned[attribute] = nested;
+    } else if (Array.isArray(expression) && Array.isArray(nested)) {
+      pruned[attribute] = nested.map(
+        (blockMask, index) => pruneUnconfigured(blockMask, expression[index] ?? expression[0] ?? {})
+      );
+    } else {
+      pruned[attribute] = nested;
+    }
+  }
+  return pruned;
+}
+function withoutProviderDefaults(plan, resourceChange) {
+  const unknownValues = resourceChange.change.after_unknown;
+  const expressions = resourceConfiguration(plan, resourceChange.address)?.expressions;
+  if (!expressions || unknownValues === null || typeof unknownValues !== "object") return unknownValues;
+  const sources = SOURCE_DERIVED_TERRAFORM_ATTRIBUTES[resourceChange.type] ?? [];
+  if (sources.some((attribute) => attribute in expressions)) return unknownValues;
+  const imageDerived = IMAGE_DERIVED_TERRAFORM_ATTRIBUTES[resourceChange.type] ?? [];
+  const kept = Object.fromEntries(
+    Object.entries(unknownValues).filter(
+      ([attribute]) => imageDerived.includes(attribute) && !(attribute in expressions)
+    )
+  );
+  return {
+    ...pruneUnconfigured(unknownValues, expressions),
+    ...kept
+  };
+}
+var escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function referencedChanges(plan, resource, attribute, targetType, candidates, block) {
+  const pattern = new RegExp(`^${escapeRegExp(targetType)}\\.([^.[\\]]+)((?:\\[(?:"(?:[^"\\\\]|\\\\.)*"|\\d+)\\])?)`);
+  const matches = configuredReferences(plan, resource.address, attribute, block).map((reference) => pattern.exec(reference)).filter((match) => match !== null);
   const names = new Set(matches.map(([, name2]) => name2));
   if (names.size !== 1) return [];
   const [name] = names;
   const indexes = new Set(matches.map(([, , index]) => index).filter((index) => index !== ""));
   if (indexes.size > 1) return [];
   const [indexed] = indexes;
-  const prefix = MODULE_PREFIX.exec(instance.address)?.[0] ?? "";
-  const base = `${prefix}aws_rds_cluster.${name}`;
-  return clusters.filter(
-    (cluster) => indexed === void 0 ? cluster.address === base || cluster.address.replace(INSTANCE_INDEX, "") === base : cluster.address === `${base}${indexed}`
+  const prefix = MODULE_PREFIX.exec(resource.address)?.[0] ?? "";
+  const base = `${prefix}${targetType}.${name}`;
+  return candidates.filter(
+    (candidate) => indexed === void 0 ? candidate.address === base || candidate.address.replace(INSTANCE_INDEX, "") === base : candidate.address === `${base}${indexed}`
   );
 }
 function clusterStorageType(cluster, side) {
@@ -42122,188 +42359,195 @@ function clusterStorageType(cluster, side) {
   )?.value;
   return typeof storageType === "string" ? storageType : void 0;
 }
-function memberClusterStorageType(plan, instance, side) {
-  const values = side === "old" ? instance.change.before : instance.change.after;
-  if (!values) return void 0;
-  const clusters = (plan.resource_changes ?? []).filter(
-    (change) => change.type === "aws_rds_cluster" && change.provider_name === HASHICORP_AWS_PROVIDER && !change.deposed
+var valuesOf = (resourceChange, side) => side === "old" ? resourceChange.change.before : resourceChange.change.after;
+function knownValue(resourceChange, side, path) {
+  const sensitivity = side === "old" ? resourceChange.change.before_sensitive : resourceChange.change.after_sensitive;
+  const unknownValues = side === "old" ? void 0 : resourceChange.change.after_unknown;
+  if (maskedAtPath(sensitivity, path) || maskedAtPath(unknownValues, path)) return void 0;
+  return path.reduce(
+    (value, segment) => value?.[segment],
+    valuesOf(resourceChange, side)
   );
-  let candidates = side === "new" ? referencedClusterChanges(plan, instance, clusters) : [];
-  if (candidates.length === 0) {
-    const sensitivity = side === "old" ? instance.change.before_sensitive : instance.change.after_sensitive;
-    const unknownValues = side === "old" ? void 0 : instance.change.after_unknown;
-    const identifier = values.cluster_identifier;
-    if (typeof identifier !== "string" || maskedAtPath(sensitivity, ["cluster_identifier"]) || maskedAtPath(unknownValues, ["cluster_identifier"])) {
-      return void 0;
-    }
-    candidates = clusters.filter(
-      (cluster) => (side === "old" ? cluster.change.before : cluster.change.after)?.cluster_identifier === identifier
-    );
+}
+function referencedResources(plan, resource, side, { targetType, matches, block }) {
+  const targets = (plan.resource_changes ?? []).filter(
+    (change) => change.type === targetType && change.provider_name === HASHICORP_AWS_PROVIDER && !change.deposed
+  );
+  const known = matches.flatMap(([attribute, targetAttribute]) => {
+    const value = knownValue(resource, side, block ? [block, 0, attribute] : [attribute]);
+    return typeof value === "string" ? [[value, targetAttribute]] : [];
+  });
+  const agrees = (target) => known.every(([value, targetAttribute]) => valuesOf(target, side)?.[targetAttribute] === value);
+  if (side === "new") {
+    const referenced = [
+      ...new Set(
+        matches.flatMap(([attribute]) => referencedChanges(plan, resource, attribute, targetType, targets, block))
+      )
+    ].filter(agrees);
+    if (referenced.length > 0) return { candidates: referenced };
   }
+  if (known.length === 0) return { candidates: [] };
+  return {
+    candidates: targets.filter(
+      (target) => known.some(([value, targetAttribute]) => valuesOf(target, side)?.[targetAttribute] === value)
+    ),
+    identifier: known[0][0]
+  };
+}
+function memberClusterStorageType(plan, instance, side) {
+  if (!valuesOf(instance, side)) return void 0;
+  const { candidates } = referencedResources(plan, instance, side, CLUSTER_REFERENCE);
   return candidates.length === 1 ? clusterStorageType(candidates[0], side) : void 0;
 }
+var CLUSTER_REFERENCE = {
+  targetType: "aws_rds_cluster",
+  matches: [["cluster_identifier", "cluster_identifier"]]
+};
 function unchangedMemberRepriced(plan, resourceChange) {
   if (resourceChange.type !== "aws_rds_cluster_instance" || resourceChange.change.actions[0] !== "no-op") return null;
   const before = memberClusterStorageType(plan, resourceChange, "old");
   const after = memberClusterStorageType(plan, resourceChange, "new");
   return before !== void 0 && after !== void 0 && before !== after ? "modify" : null;
 }
+var AMI_PLATFORMS = Object.freeze({
+  "Linux/UNIX": "Linux",
+  Windows: "Windows",
+  "Red Hat Enterprise Linux": "RHEL",
+  "SUSE Linux": "SUSE"
+});
+function stateResources(plan) {
+  const found = [];
+  const visit = (module2) => {
+    found.push(...module2?.resources ?? []);
+    for (const child of module2?.child_modules ?? []) visit(child);
+  };
+  visit(plan.prior_state?.values?.root_module);
+  return found;
+}
+function instanceImage(plan, instance, side, attribute) {
+  const prefix = MODULE_PREFIX.exec(instance.address)?.[0] ?? "";
+  const sources = new Set(
+    configuredReferences(plan, instance.address, attribute).map((reference) => /^data\.(aws_ami|aws_ssm_parameter)\.([^.[\]]+)$/.exec(reference)).filter((match) => match !== null).map(([address2]) => `${prefix}${address2}`)
+  );
+  if (sources.size !== 1) return void 0;
+  const [address] = sources;
+  const dataSource = stateResources(plan).find((resource) => resource.address === address && resource.mode === "data");
+  const values = dataSource?.values;
+  if (!values) return void 0;
+  const selected = dataSource.type === "aws_ami" ? values.id : values.value;
+  if (valuesOf(instance, side)?.[attribute] !== selected) return void 0;
+  if (dataSource.type === "aws_ami") {
+    if (Array.isArray(values.product_codes) && values.product_codes.length > 0) return void 0;
+    const platform = AMI_PLATFORMS[values.platform_details];
+    return platform ? { operatingSystem: platform } : void 0;
+  }
+  return isPublicImagePath(values.name) ? { machineImage: values.name } : void 0;
+}
 function memberOptions(plan, resourceChange, side) {
+  if (resourceChange.type === "aws_instance") return { image: instanceImage(plan, resourceChange, side, "ami") };
+  if (resourceChange.type === "aws_launch_template") {
+    return { image: instanceImage(plan, resourceChange, side, "image_id") };
+  }
   return resourceChange.type === "aws_rds_cluster_instance" ? { clusterStorageType: memberClusterStorageType(plan, resourceChange, side) } : {};
+}
+var ABSENT_SIDE = { state: "absent" };
+function ownSide(plan, resourceChange, side) {
+  const { change } = resourceChange;
+  const old = side === "old";
+  return projectSide(
+    old ? change.before : change.after,
+    old ? change.before_sensitive : change.after_sensitive,
+    old ? void 0 : withoutProviderDefaults(plan, resourceChange),
+    resourceChange.type,
+    memberOptions(plan, resourceChange, side)
+  );
+}
+var TASK_DEFINITION_REFERENCE = {
+  targetType: "aws_ecs_task_definition",
+  matches: [["task_definition", "arn"]]
+};
+var LAUNCH_TEMPLATE_REFERENCE = {
+  targetType: "aws_launch_template",
+  matches: [
+    ["id", "id"],
+    ["name", "name"]
+  ],
+  block: "launch_template"
+};
+function serviceTaskDefinitionSide(plan, service, side) {
+  if (!valuesOf(service, side)) return void 0;
+  const { candidates } = referencedResources(plan, service, side, TASK_DEFINITION_REFERENCE);
+  return candidates.length === 1 && valuesOf(candidates[0], side) ? ownSide(plan, candidates[0], side) : void 0;
+}
+function launchTemplateVersionIsCurrent(plan, group2, side, template) {
+  if (side === "new" && maskedAtPath(group2.change.after_unknown, ["launch_template", 0, "version"])) {
+    return configuredReferences(plan, group2.address, "version", "launch_template").some(
+      (reference) => reference.endsWith(".latest_version")
+    );
+  }
+  const version2 = valuesOf(group2, side)?.launch_template?.[0]?.version;
+  const values = valuesOf(template, side);
+  if (version2 === "$Latest") return true;
+  if (typeof values?.latest_version === "number" && version2 === String(values.latest_version)) return true;
+  if (version2 !== void 0 && version2 !== null && version2 !== "$Default") return false;
+  if (typeof values?.default_version === "number" && values.default_version === values.latest_version) return true;
+  return side === "new" && (template.change.actions.includes("create") || values?.update_default_version === true);
+}
+function groupLaunchTemplateSide(plan, group2, side) {
+  const specification = valuesOf(group2, side)?.launch_template;
+  if (!Array.isArray(specification) || specification.length === 0) return void 0;
+  const { candidates, identifier } = referencedResources(plan, group2, side, LAUNCH_TEMPLATE_REFERENCE);
+  if (candidates.length === 0) {
+    return { state: "unknown", reason: identifier === void 0 ? "unresolved-expression" : "not-in-artifact" };
+  }
+  if (candidates.length !== 1 || !launchTemplateVersionIsCurrent(plan, group2, side, candidates[0])) {
+    return { state: "unknown", reason: "unresolved-expression" };
+  }
+  return ownSide(plan, candidates[0], side);
+}
+function resourceSide(plan, resourceChange, side) {
+  const own = ownSide(plan, resourceChange, side);
+  const resolved = resourceChange.type === "aws_autoscaling_group" ? [LAUNCH_TEMPLATE_EMBEDDING, groupLaunchTemplateSide(plan, resourceChange, side)] : resourceChange.type === "aws_ecs_service" ? [TASK_DEFINITION_EMBEDDING, serviceTaskDefinitionSide(plan, resourceChange, side)] : void 0;
+  return resolved?.[1] ? embedResolvedInputs(own, resolved[1], resolved[0]) : own;
+}
+function unchangedReferrerRepriced(plan, resourceChange) {
+  if (!["aws_autoscaling_group", "aws_ecs_service"].includes(resourceChange.type) || resourceChange.change.actions[0] !== "no-op") {
+    return null;
+  }
+  return JSON.stringify(resourceSide(plan, resourceChange, "old")) !== JSON.stringify(resourceSide(plan, resourceChange, "new")) ? "modify" : null;
 }
 function buildTerraformResourceChangeSet(options) {
   validateAwsProviderRegions(options.plan, options.region);
   const changes = [];
   for (const resourceChange of options.plan.resource_changes ?? []) {
     if (resourceChange.provider_name !== HASHICORP_AWS_PROVIDER) continue;
-    const change = changeKind(resourceChange) ?? unchangedMemberRepriced(options.plan, resourceChange);
+    const change = changeKind(resourceChange) ?? unchangedMemberRepriced(options.plan, resourceChange) ?? unchangedReferrerRepriced(options.plan, resourceChange);
     if (!change) continue;
+    const old = change === "add" ? ABSENT_SIDE : resourceSide(options.plan, resourceChange, "old");
+    const next = change === "delete" ? ABSENT_SIDE : resourceSide(options.plan, resourceChange, "new");
     changes.push({
       identity: {
         address: resourceAddress(resourceChange),
         resourceType: resourceChange.type
       },
       change,
-      old: change === "add" ? { state: "absent" } : projectSide(
-        resourceChange.change.before,
-        resourceChange.change.before_sensitive,
-        void 0,
-        resourceChange.type,
-        memberOptions(options.plan, resourceChange, "old")
-      ),
-      new: change === "delete" ? { state: "absent" } : projectSide(
-        resourceChange.change.after,
-        resourceChange.change.after_sensitive,
-        resourceChange.change.after_unknown,
-        resourceChange.type,
-        memberOptions(options.plan, resourceChange, "new")
-      )
+      old,
+      new: next
     });
   }
   return createResourceChangeSet({
     source: "terraform",
     region: options.region,
-    assumptionSnapshots: createAssumptionSnapshots(options.beforeRevision, options.afterRevision),
     changes
   });
 }
 
-// src/utils/usage-assumptions.ts
-var fs = __toESM(require("fs"));
-var path = __toESM(require("path"));
-var core2 = __toESM(require_core());
+// src/terraform/comment.ts
+var core3 = __toESM(require_core());
 var github = __toESM(require_github());
 
-// src/utils/comment-appendix.ts
-function fencedBlock(language, content) {
-  const longestBacktickRun = Math.max(0, ...(content.match(/`+/g) ?? []).map((run2) => run2.length));
-  const delimiter = "`".repeat(Math.max(3, longestBacktickRun + 1));
-  return `${delimiter}${language}
-${content}
-${delimiter}`;
-}
-function renderCollapsedAppendix(summary2, blocks) {
-  if (blocks.length === 0) return "";
-  return `
-
-<details><summary><em>${summary2}</em></summary>
-
-${blocks.join("\n\n")}
-
-</details>`;
-}
-
-// src/utils/usage-assumptions.ts
-var USAGE_ASSUMPTIONS_PATH = ".cloudburn/usage-assumptions.json";
-var MAX_USAGE_ASSUMPTIONS_BYTES = 64 * 1024;
-var BLOCK_LABEL = "cloudburn-usage-assumptions";
-function errorFence(name, message) {
-  return fencedBlock(`${BLOCK_LABEL}-${name}-error`, JSON.stringify({ message }));
-}
-function toFencedBlock(name, snapshot) {
-  if (snapshot.status === "absent") {
-    return void 0;
-  }
-  if (snapshot.status === "unavailable") {
-    return errorFence(name, "Usage assumptions could not be read at the pull request base commit");
-  }
-  if (Buffer.byteLength(snapshot.content, "utf-8") > MAX_USAGE_ASSUMPTIONS_BYTES) {
-    core2.warning(
-      `Skipping the ${name} usage assumptions: '${USAGE_ASSUMPTIONS_PATH}' exceeds ${MAX_USAGE_ASSUMPTIONS_BYTES} bytes.`
-    );
-    return errorFence(name, "Usage assumptions file exceeds the maximum allowed size");
-  }
-  try {
-    JSON.parse(snapshot.content);
-  } catch {
-    core2.warning(`Skipping the ${name} usage assumptions: '${USAGE_ASSUMPTIONS_PATH}' is not valid JSON.`);
-    return errorFence(name, "Usage assumptions file is not valid JSON");
-  }
-  return fencedBlock(`${BLOCK_LABEL}-${name}`, snapshot.content.trim());
-}
-function renderUsageAssumptions({ current, previous }) {
-  if (current.status === "absent" && previous.status === "unavailable") {
-    return "";
-  }
-  const blocks = [toFencedBlock("current", current), toFencedBlock("previous", previous)].filter(
-    (block) => block !== void 0
-  );
-  if (blocks.length === 0) {
-    return "";
-  }
-  core2.info(`Embedding ${blocks.length} usage assumptions block(s) in the comment`);
-  return renderCollapsedAppendix("CloudBurn usage assumptions", blocks);
-}
-async function readAtCommit(octokit, ref) {
-  try {
-    const { data } = await octokit.rest.repos.getContent({
-      owner: github.context.repo.owner,
-      repo: github.context.repo.repo,
-      path: USAGE_ASSUMPTIONS_PATH,
-      ref
-    });
-    if (Array.isArray(data) || data.type !== "file" || data.encoding !== "base64") {
-      core2.warning(`'${USAGE_ASSUMPTIONS_PATH}' at commit ${ref} is not a readable file.`);
-      return { status: "unavailable" };
-    }
-    return { status: "found", content: Buffer.from(data.content, "base64").toString("utf-8") };
-  } catch (error52) {
-    if (error52.status === 404) {
-      core2.info(`No '${USAGE_ASSUMPTIONS_PATH}' at commit ${ref}, treating the file as newly added`);
-      return { status: "absent" };
-    }
-    core2.warning(
-      `Could not read '${USAGE_ASSUMPTIONS_PATH}' at commit ${ref}: ${error52 instanceof Error ? error52.message : String(error52)}`
-    );
-    return { status: "unavailable" };
-  }
-}
-async function readUsageAssumptions(options) {
-  const workspace = options.workspace ?? process.env.GITHUB_WORKSPACE ?? process.cwd();
-  const file2 = path.join(workspace, USAGE_ASSUMPTIONS_PATH);
-  if (!fs.existsSync(file2)) {
-    core2.info(`No '${USAGE_ASSUMPTIONS_PATH}' in the workspace, skipping usage assumptions`);
-    return { current: { status: "absent" }, previous: { status: "absent" } };
-  }
-  core2.info(`Reading usage assumptions from '${USAGE_ASSUMPTIONS_PATH}'`);
-  const current = { status: "found", content: fs.readFileSync(file2, "utf-8") };
-  const baseSha = options.baseSha ?? github.context.payload.pull_request?.base?.sha;
-  if (!baseSha) {
-    core2.info("No pull request base commit available, embedding the current usage assumptions only");
-    return { current, previous: { status: "absent" } };
-  }
-  return { current, previous: await readAtCommit(options.octokit, baseSha) };
-}
-async function usageAssumptionsSection(options) {
-  return renderUsageAssumptions(await readUsageAssumptions(options));
-}
-
-// src/terraform/comment.ts
-var core4 = __toESM(require_core());
-var github2 = __toESM(require_github());
-
 // src/terraform/render.ts
-var core3 = __toESM(require_core());
+var core2 = __toESM(require_core());
 var exec = __toESM(require_exec());
 function planIsEmpty(plan) {
   return !plan.createdResources && !plan.recreatedResources && !plan.updatedResources && !plan.deletedResources;
@@ -42381,10 +42625,10 @@ function extractResources(resources, humanReadablePlan) {
 }
 function internalRenderPlan(structuredPlan, humanReadablePlan) {
   if (structuredPlan.resource_changes === void 0 || structuredPlan.resource_changes.length === 0) {
-    core3.info("No resource changes detected in Terraform plan");
+    core2.info("No resource changes detected in Terraform plan");
     return {};
   }
-  core3.info(`Rendering ${structuredPlan.resource_changes.length} resource change(s)`);
+  core2.info(`Rendering ${structuredPlan.resource_changes.length} resource change(s)`);
   const { created, updated, recreated, deleted } = structuredPlan.resource_changes.reduce(
     (acc, resource) => {
       const change = classifyTerraformActions(resource.change.actions);
@@ -42407,7 +42651,7 @@ function internalRenderPlan(structuredPlan, humanReadablePlan) {
       deleted: []
     }
   );
-  core3.info(
+  core2.info(
     `Resource breakdown: ${created.length} created, ${updated.length} updated, ${recreated.length} recreated, ${deleted.length} deleted`
   );
   return {
@@ -42422,12 +42666,12 @@ async function renderPlan({
   terraformCommand,
   workingDirectory
 }) {
-  core3.info(`Rendering Terraform plan from file: ${planfile}`);
+  core2.info(`Rendering Terraform plan from file: ${planfile}`);
   const options = {
     cwd: workingDirectory,
     silent: true
   };
-  core3.info("Fetching structured plan (JSON format)");
+  core2.info("Fetching structured plan (JSON format)");
   const structuredPlanfile = await exec.getExecOutput(terraformCommand, ["show", "-json", planfile], options).then((output) => {
     try {
       return JSON.parse(output.stdout);
@@ -42437,7 +42681,7 @@ async function renderPlan({
       );
     }
   }).then((json2) => parsePlanfileJSON(json2));
-  core3.info("Fetching human-readable plan");
+  core2.info("Fetching human-readable plan");
   const humanReadablePlanfile = await exec.getExecOutput(terraformCommand, ["show", "-no-color", planfile], options).then((output) => output.stdout);
   return {
     plan: internalRenderPlan(structuredPlanfile, humanReadablePlanfile),
@@ -42498,27 +42742,26 @@ function renderBody(plan) {
 function renderMarkdown({
   plan,
   header = "\u{1F4DD} Terraform Plan",
-  awsRegion,
-  usageAssumptions = ""
+  awsRegion
 }) {
   const trimmedHeader = header.replace(/^#+\s*/, "");
-  core4.info("Rendering Terraform plan to markdown");
+  core3.info("Rendering Terraform plan to markdown");
   const body = renderBody(plan);
   if (planIsEmpty(plan)) {
-    core4.info("No resource changes detected - rendering empty plan message");
+    core3.info("No resource changes detected - rendering empty plan message");
   } else {
     const createdCount = Object.keys(plan.createdResources ?? {}).length;
     const updatedCount = Object.keys(plan.updatedResources ?? {}).length;
     const recreatedCount = Object.keys(plan.recreatedResources ?? {}).length;
     const deletedCount = Object.keys(plan.deletedResources ?? {}).length;
-    core4.info(
+    core3.info(
       `Rendering plan: ${createdCount} created, ${updatedCount} updated, ${recreatedCount} recreated, ${deletedCount} deleted`
     );
   }
   let footer = "";
-  const actor = github2.context.actor || github2.context.payload.pull_request?.user?.login || github2.context.payload.sender?.login;
+  const actor = github.context.actor || github.context.payload.pull_request?.user?.login || github.context.payload.sender?.login;
   if (actor) {
-    core4.info(`Building footer with actor: ${actor}`);
+    core3.info(`Building footer with actor: ${actor}`);
     footer = "\n\n---\n\n";
     footer += `<details><summary><em>Triggered by @${actor}</em></summary>
 
@@ -42526,57 +42769,57 @@ function renderMarkdown({
     footer += "<br>\n\n";
     footer += "Infrastructure change details:\n";
     if (awsRegion) {
-      core4.info(`Adding AWS region to footer: ${awsRegion}`);
+      core3.info(`Adding AWS region to footer: ${awsRegion}`);
       footer += `- AWS Region: ${awsRegion}
 `;
     } else {
-      core4.info("No AWS region provided, skipping region in footer");
+      core3.info("No AWS region provided, skipping region in footer");
     }
-    const commitSha = github2.context.payload.pull_request?.head?.sha;
+    const commitSha = github.context.payload.pull_request?.head?.sha;
     if (commitSha) {
-      core4.info(`Adding commit SHA to footer: ${commitSha}`);
+      core3.info(`Adding commit SHA to footer: ${commitSha}`);
       footer += `- Commit: \`${commitSha}\`
 `;
     } else {
-      core4.info("No commit SHA found in PR context, skipping commit in footer");
+      core3.info("No commit SHA found in PR context, skipping commit in footer");
     }
     footer += "\n</details>";
   } else {
-    core4.info("No actor found, skipping footer generation");
+    core3.info("No actor found, skipping footer generation");
   }
   return `## ${trimmedHeader}
 
-${body}${footer}${usageAssumptions}`;
+${body}${footer}`;
 }
 async function createOrUpdateComment({
   octokit,
   content
 }) {
-  core4.info(`Fetching existing PR comments for PR #${github2.context.issue.number}`);
+  core3.info(`Fetching existing PR comments for PR #${github.context.issue.number}`);
   const comments = await octokit.paginate(octokit.rest.issues.listComments, {
-    owner: github2.context.repo.owner,
-    repo: github2.context.repo.repo,
-    issue_number: github2.context.issue.number
+    owner: github.context.repo.owner,
+    repo: github.context.repo.repo,
+    issue_number: github.context.issue.number
   });
-  core4.info(`Found ${comments.length} existing comment(s)`);
+  core3.info(`Found ${comments.length} existing comment(s)`);
   const header = content.split("\n")[0];
   for (const comment of comments) {
     if (comment.body?.startsWith(header)) {
-      core4.info(`Updating existing comment (ID: ${comment.id}) with new plan`);
+      core3.info(`Updating existing comment (ID: ${comment.id}) with new plan`);
       await octokit.rest.issues.updateComment({
-        owner: github2.context.repo.owner,
-        repo: github2.context.repo.repo,
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
         comment_id: comment.id,
         body: content
       });
       return;
     }
   }
-  core4.info("Creating new PR comment with Terraform plan");
+  core3.info("Creating new PR comment with Terraform plan");
   await octokit.rest.issues.createComment({
-    owner: github2.context.repo.owner,
-    repo: github2.context.repo.repo,
-    issue_number: github2.context.issue.number,
+    owner: github.context.repo.owner,
+    repo: github.context.repo.repo,
+    issue_number: github.context.issue.number,
     body: content
   });
 }
@@ -42584,16 +42827,16 @@ async function createOrUpdateComment({
 // src/terraform/index.ts
 async function run() {
   const inputs = {
-    token: core5.getInput("token", { required: true }),
-    planfile: core5.getInput("planfile", { required: true }),
-    terraformCmd: core5.getInput("terraform-cmd", { required: true }),
-    workingDirectory: core5.getInput("working-directory", { required: true }),
-    header: core5.getInput("header", { required: false }),
-    awsRegion: core5.getInput("aws-region", { required: false })
+    token: core4.getInput("token", { required: true }),
+    planfile: core4.getInput("planfile", { required: true }),
+    terraformCmd: core4.getInput("terraform-cmd", { required: true }),
+    workingDirectory: core4.getInput("working-directory", { required: true }),
+    header: core4.getInput("header", { required: false }),
+    awsRegion: core4.getInput("aws-region", { required: false })
   };
   validateAwsRegion(inputs.awsRegion || void 0);
-  const octokit = github3.getOctokit(inputs.token);
-  const { plan, structuredPlan } = await core5.group(
+  const octokit = github2.getOctokit(inputs.token);
+  const { plan, structuredPlan } = await core4.group(
     "Render plan",
     () => renderPlan({
       planfile: inputs.planfile,
@@ -42601,44 +42844,39 @@ async function run() {
       workingDirectory: inputs.workingDirectory
     })
   );
-  const pullRequest = github3.context.payload.pull_request;
   const producedResourceChanges = inputs.awsRegion ? produceResourceChangeAppendix(
     () => buildTerraformResourceChangeSet({
       plan: structuredPlan,
-      region: inputs.awsRegion,
-      beforeRevision: pullRequest?.base.sha,
-      afterRevision: pullRequest?.head.sha
+      region: inputs.awsRegion
     })
   ) : null;
   const resourceChangeSet = producedResourceChanges?.resourceChangeSet ?? null;
   const resourceChanges = producedResourceChanges?.appendix ?? renderResourceChangeSetError("The Terraform producer requires the aws-region input");
   if (producedResourceChanges?.error) {
-    core5.warning(
+    core4.warning(
       `Could not publish Resource Change Set 1.0: ${producedResourceChanges.error instanceof Error ? producedResourceChanges.error.message : String(producedResourceChanges.error)}`
     );
   }
-  if (resourceChangeSet) core5.setOutput("resource-changes", JSON.stringify(resourceChangeSet));
-  const usageAssumptions = await core5.group("Collect usage assumptions", () => usageAssumptionsSection({ octokit }));
-  const planMarkdown = await core5.group("Render plan diff markdown", async () => {
+  if (resourceChangeSet) core4.setOutput("resource-changes", JSON.stringify(resourceChangeSet));
+  const planMarkdown = await core4.group("Render plan diff markdown", async () => {
     const humanMarkdown = renderMarkdown({
       plan,
       header: inputs.header || void 0,
-      awsRegion: inputs.awsRegion || void 0,
-      usageAssumptions
+      awsRegion: inputs.awsRegion || void 0
     });
     const markdown = appendResourceChangeAppendix(humanMarkdown, resourceChanges);
-    core5.setOutput("markdown", markdown);
-    core5.setOutput("empty", planIsEmpty(plan));
+    core4.setOutput("markdown", markdown);
+    core4.setOutput("empty", planIsEmpty(plan));
     return markdown;
   });
-  await core5.group("Adding plan to step summary", async () => {
+  await core4.group("Adding plan to step summary", async () => {
     const markdownLength = planMarkdown.length;
-    core5.info(`Writing ${markdownLength} characters to GitHub Actions step summary`);
-    await core5.summary.addRaw(planMarkdown).write();
-    core5.info("Successfully wrote plan to step summary");
+    core4.info(`Writing ${markdownLength} characters to GitHub Actions step summary`);
+    await core4.summary.addRaw(planMarkdown).write();
+    core4.info("Successfully wrote plan to step summary");
   });
-  if (isPullRequestCommentEvent(github3.context.eventName)) {
-    await core5.group("Render comment", () => {
+  if (isPullRequestCommentEvent(github2.context.eventName)) {
+    await core4.group("Render comment", () => {
       return createOrUpdateComment({ octokit, content: planMarkdown });
     });
   }
@@ -42649,33 +42887,33 @@ async function main() {
   } catch (error52) {
     if (error52 instanceof Error) {
       if (error52.message.includes("Invalid AWS region")) {
-        core5.setFailed(error52.message);
+        core4.setFailed(error52.message);
         return;
       }
-      core5.error(`Error Type: ${error52.constructor.name}`);
-      core5.error(`Error Message: ${error52.message}`);
+      core4.error(`Error Type: ${error52.constructor.name}`);
+      core4.error(`Error Message: ${error52.message}`);
       if (error52.stack) {
-        core5.debug(`Stack Trace: ${error52.stack}`);
+        core4.debug(`Stack Trace: ${error52.stack}`);
       }
       if (error52.message.includes("terraform")) {
-        core5.error("This appears to be a Terraform-related error. Please verify:");
-        core5.error("  - Terraform is properly installed and accessible");
-        core5.error("  - The planfile exists and is valid");
-        core5.error("  - The working directory is correct");
+        core4.error("This appears to be a Terraform-related error. Please verify:");
+        core4.error("  - Terraform is properly installed and accessible");
+        core4.error("  - The planfile exists and is valid");
+        core4.error("  - The working directory is correct");
       } else if (error52.message.includes("GitHub")) {
-        core5.error("This appears to be a GitHub API error. Please verify:");
-        core5.error("  - The GitHub token has the necessary permissions");
-        core5.error("  - The repository exists and is accessible");
+        core4.error("This appears to be a GitHub API error. Please verify:");
+        core4.error("  - The GitHub token has the necessary permissions");
+        core4.error("  - The repository exists and is accessible");
       } else if (error52.message.includes("parse") || error52.message.includes("JSON")) {
-        core5.error("This appears to be a parsing error. Please verify:");
-        core5.error("  - The Terraform plan output is valid");
-        core5.error("  - The Terraform version is compatible");
+        core4.error("This appears to be a parsing error. Please verify:");
+        core4.error("  - The Terraform plan output is valid");
+        core4.error("  - The Terraform version is compatible");
       }
-      core5.setFailed(error52.message);
+      core4.setFailed(error52.message);
     } else {
       const errorMessage = String(error52);
-      core5.error(`Unknown error type: ${errorMessage}`);
-      core5.setFailed(errorMessage);
+      core4.error(`Unknown error type: ${errorMessage}`);
+      core4.setFailed(errorMessage);
     }
   }
 }
