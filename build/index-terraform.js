@@ -42095,7 +42095,7 @@ var planfileSchema = external_exports.object({
         name: external_exports.string(),
         full_name: external_exports.string().optional(),
         alias: external_exports.string().optional(),
-        expressions: external_exports.record(external_exports.string(), external_exports.object({ constant_value: external_exports.json().optional() }).passthrough()).optional()
+        expressions: external_exports.object({ region: external_exports.object({ constant_value: external_exports.json().optional() }).passthrough().optional() }).catchall(external_exports.json()).optional()
       }).passthrough()
     ).optional(),
     // Only used to resolve resource references; a shape surprise must not reject the whole plan.
